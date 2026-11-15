@@ -1,0 +1,194 @@
+package com.iank.im.peek.ui.settings
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.PrimaryScrollableTabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import com.iank.im.peek.R
+import com.iank.im.peek.domain.model.ApiPreset
+import com.iank.im.peek.domain.model.AppLanguage
+import com.iank.im.peek.domain.model.AppSettings
+import com.iank.im.peek.domain.model.CameraLensOption
+import com.iank.im.peek.domain.model.CaptureResolutionOption
+import com.iank.im.peek.domain.model.ContextRetentionMode
+import com.iank.im.peek.domain.model.ImageResolutionPreset
+import com.iank.im.peek.domain.model.ImageSendMethod
+import com.iank.im.peek.domain.model.OpenAiImageDetail
+import com.iank.im.peek.ui.main.ConnectionTestUiState
+import kotlinx.coroutines.launch
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsBottomSheet(
+    presets: List<ApiPreset>,
+    selectedPreset: ApiPreset?,
+    settings: AppSettings,
+    storageUsageBytes: Long,
+    connectionTestStatus: ConnectionTestUiState,
+    onDismiss: () -> Unit,
+    onSelectPreset: (String) -> Unit,
+    onLoadApiKey: suspend (String) -> String,
+    onSavePreset: (ApiPreset, String) -> Unit,
+    onDeletePreset: (String) -> Unit,
+    onTestConnection: (ApiPreset, String) -> Unit,
+    onResetConnectionTest: () -> Unit,
+    onUpdateSendMethod: (ImageSendMethod) -> Unit,
+    onUpdateDefaultResolution: (ImageResolutionPreset) -> Unit,
+    onUpdateContextRetention: (ContextRetentionMode) -> Unit,
+    onUpdateAutoReplaceOldImages: (Boolean) -> Unit,
+    onUpdateKeepRecentImageTurns: (Int) -> Unit,
+    onUpdateOpenAiImageDetail: (OpenAiImageDetail) -> Unit,
+    onUpdateOpenAiDeveloperRole: (Boolean) -> Unit,
+    onUpdateBackgroundCaption: (Boolean) -> Unit,
+    onUpdateCaptionModelId: (String) -> Unit,
+    onCleanupStorage: () -> Unit,
+    onUpdateDefaultLens: (CameraLensOption) -> Unit,
+    onUpdateCaptureResolution: (CaptureResolutionOption) -> Unit,
+    onUpdateLanguage: (AppLanguage) -> Unit,
+    onUpdateSystemPrompt: (String) -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val coroutineScope = rememberCoroutineScope()
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+
+    fun animateClose() {
+        if (!sheetState.isVisible) {
+            onDismiss()
+            return
+        }
+        coroutineScope.launch {
+            sheetState.hide()
+        }.invokeOnCompletion {
+            if (!sheetState.isVisible) {
+                onDismiss()
+            }
+        }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .imePadding()
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = ::animateClose) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = stringResource(R.string.action_close)
+                    )
+                }
+            }
+
+            val tabs = listOf(
+                R.string.settings_tab_api,
+                R.string.settings_tab_payload,
+                R.string.settings_tab_camera,
+                R.string.settings_tab_prompt
+            )
+
+            PrimaryScrollableTabRow(
+                selectedTabIndex = selectedTab,
+                edgePadding = 16.dp
+            ) {
+                tabs.forEachIndexed { index, titleRes ->
+                    Tab(
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index },
+                        text = { Text(stringResource(titleRes)) }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
+            ) {
+                when (selectedTab) {
+                    0 -> ApiPresetSection(
+                        presets = presets,
+                        selectedPresetId = selectedPreset?.id,
+                        connectionTestStatus = connectionTestStatus,
+                        onSelectPreset = onSelectPreset,
+                        onLoadApiKey = onLoadApiKey,
+                        onSavePreset = onSavePreset,
+                        onDeletePreset = onDeletePreset,
+                        onTestConnection = onTestConnection,
+                        onResetConnectionTest = onResetConnectionTest
+                    )
+                    1 -> PayloadContextSection(
+                        settings = settings,
+                        selectedPreset = selectedPreset,
+                        storageUsageBytes = storageUsageBytes,
+                        onUpdateSendMethod = onUpdateSendMethod,
+                        onUpdateDefaultResolution = onUpdateDefaultResolution,
+                        onUpdateContextRetention = onUpdateContextRetention,
+                        onUpdateAutoReplaceOldImages = onUpdateAutoReplaceOldImages,
+                        onUpdateKeepRecentImageTurns = onUpdateKeepRecentImageTurns,
+                        onUpdateOpenAiImageDetail = onUpdateOpenAiImageDetail,
+                        onUpdateOpenAiDeveloperRole = onUpdateOpenAiDeveloperRole,
+                        onUpdateBackgroundCaption = onUpdateBackgroundCaption,
+                        onUpdateCaptionModelId = onUpdateCaptionModelId,
+                        onCleanupStorage = onCleanupStorage
+                    )
+                    2 -> CameraConfigSection(
+                        settings = settings,
+                        onUpdateDefaultLens = onUpdateDefaultLens,
+                        onUpdateCaptureResolution = onUpdateCaptureResolution,
+                        onUpdateLanguage = onUpdateLanguage
+                    )
+                    3 -> SystemPromptSection(
+                        systemPrompt = settings.systemPrompt,
+                        onUpdateSystemPrompt = onUpdateSystemPrompt
+                    )
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+    }
+}
