@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Peek</string>
+
+    <!-- Common Actions & Navigation -->
+    <string name="action_cancel">취소</string>
+    <string name="action_confirm">확인</string>
+    <string name="action_save">저장</string>
+    <string name="action_delete">삭제</string>
+    <string name="action_edit">수정</string>
+    <string name="action_copy">복사</string>
+    <string name="action_retry">재시도</string>
+    <string name="action_stop">중지</string>
+    <string name="action_undo">실행 취소</string>
+    <string name="action_close">닫기</string>
+    <string name="action_apply">적용</string>
+    <string name="action_open_settings">설정 열기</string>
+    <string name="action_grant_permission">권한 허용</string>
+    <string name="action_test_connection">연결 테스트</string>
+
+    <!-- Content Descriptions (Accessibility) -->
+    <string name="cd_open_drawer">대화 목록 열기</string>
+    <string name="cd_select_preset">API 프리셋 선택</string>
+    <string name="cd_open_settings">설정 열기</string>
+    <string name="cd_switch_camera_lens">카메라 렌즈 전환</string>
+    <string name="cd_capture_photo">사진 촬영</string>
+    <string name="cd_pick_from_gallery">갤러리에서 사진 선택</string>
+    <string name="cd_send_message">메시지 전송</string>
+    <string name="cd_remove_pending_attachment">대기 중인 사진 삭제</string>
+    <string name="cd_clear_continuing_conversation">새 대화로 전환</string>
+    <string name="cd_return_to_camera">카메라로 돌아가기</string>
+    <string name="cd_pending_thumbnail">대기 중인 첨부 사진 썸네일</string>
+    <string name="cd_message_image">메시지 첨부 사진</string>
+    <string name="cd_close_image_viewer">이미지 뷰어 닫기</string>
+    <string name="cd_toggle_api_key_visibility">API 키 표시 전환</string>
+    <string name="cd_copy_code_block">코드 블록 복사</string>
+    <string name="cd_clear_search">검색어 지우기</string>
+    <string name="cd_delete_preset">API 프리셋 삭제</string>
+
+    <!-- Explore / Top & Bottom Camera Controls -->
+    <string name="preset_none_configured">API 설정 필요</string>
+    <string name="continuing_in_conversation">‘%1$s’에 이어서</string>
+    <string name="camera_permission_title">카메라 권한이 꺼져 있습니다</string>
+    <string name="camera_permission_subtitle">갤러리에서 사진을 선택하거나 카메라 권한을 허용해 실시간 뷰파인더를 사용할 수 있습니다.</string>
+    <string name="camera_gallery_only_badge">갤러리 전용 모드</string>
+    <string name="camera_error_in_use">다른 앱에서 카메라를 사용 중입니다.</string>
+    <string name="camera_error_max_cameras">동시에 사용할 수 있는 최대 카메라 수를 초과했습니다.</string>
+    <string name="camera_error_disabled_policy">기기 보안 정책으로 인해 카메라가 비활성화되었습니다.</string>
+    <string name="camera_error_generic">카메라 프리뷰를 시작할 수 없습니다 (%1$s).</string>
+    <string name="camera_lens_fallback_notice">요청한 카메라를 사용할 수 없어 %1$s 카메라로 전환했습니다.</string>
+    <string name="camera_lens_back">후면</string>
+    <string name="camera_lens_front">전면</string>
+    <string name="input_hint_ask_about_scene">비추고 있는 것에 대해 질문하세요…</string>
+    <string name="input_hint_follow_up">후속 질문을 입력하세요…</string>
+    <string name="pending_attachments_cleared">대기 중인 사진을 비웠습니다</string>
+    <string name="capture_in_flight_hint">사진 저장 중…</string>
+    <string name="capture_failed">사진 촬영에 실패했습니다.</string>
+    <string name="gallery_import_failed">선택한 사진을 불러오지 못했습니다.</string>
+    <string name="gallery_file_too_large">사진 크기가 64MB 제한을 초과했습니다.</string>
+    <string name="gallery_unsupported_format">지원하지 않는 이미지 형식입니다.</string>
+
+    <!-- Navigation Drawer -->
+    <string name="drawer_search_hint">대화 검색…</string>
+    <string name="drawer_new_conversation">새 대화</string>
+    <string name="drawer_empty_conversations">아직 대화가 없습니다.\n카메라로 비추거나 사진을 선택해 시작해 보세요.</string>
+    <string name="drawer_empty_search">검색 결과가 없습니다.</string>
+    <string name="drawer_settings">설정</string>
+    <string name="drawer_delete_dialog_title">대화를 삭제할까요?</string>
+    <string name="drawer_delete_dialog_message">‘%1$s’ 대화와 포함된 모든 사진 및 메시지가 영구적으로 삭제됩니다.</string>
+    <string name="default_photo_conversation_title">사진 질문</string>
+    <string name="default_text_conversation_title">새 질문</string>
+
+    <!-- Chat Panel & Message Interactions -->
+    <string name="chat_back_to_camera">카메라</string>
+    <string name="chat_role_user">나</string>
+    <string name="chat_role_assistant">Peek AI</string>
+    <string name="chat_status_thinking">분석 중…</string>
+    <string name="chat_status_cancelled">요청이 중지되었습니다.</string>
+    <string name="chat_badge_text_replaced">컨텍스트 텍스트 대치됨</string>
+    <string name="chat_resolution_badge">%1$s</string>
+    <string name="chat_empty_messages">질문이나 사진을 보내 대화를 시작하세요.</string>
+    <string name="chat_copied_to_clipboard">클립보드에 복사되었습니다</string>
+    <string name="chat_image_copied_to_clipboard">사진이 클립보드에 복사되었습니다</string>
+    <string name="chat_image_copy_failed">사진을 클립보드에 복사하지 못했습니다.</string>
+    <string name="chat_code_copied">코드가 복사되었습니다</string>
+    <string name="chat_text_selection_title">텍스트 선택</string>
+
+    <!-- Context Menus -->
+    <string name="menu_copy_text">복사</string>
+    <string name="menu_select_text">텍스트 선택</string>
+    <string name="menu_edit_message">수정</string>
+    <string name="menu_copy_image">사진 복사</string>
+    <string name="menu_replace_image">사진 교체</string>
+    <string name="menu_toggle_text_replace_on">텍스트 요약으로만 전송</string>
+    <string name="menu_toggle_text_replace_off">사진 원본 다시 포함</string>
+    <string name="menu_change_resolution">전송 해상도 변경</string>
+
+    <!-- Edit Message Dialog -->
+    <string name="edit_user_message_title">질문 수정</string>
+    <string name="edit_user_message_warning">이 메시지를 수정하면 이후 대화가 모두 삭제된 후 수정된 내용으로 다시 전송됩니다.</string>
+    <string name="edit_assistant_message_title">응답 수정</string>
+    <string name="edit_assistant_message_hint">로컬에 저장된 응답만 수정되며 이후 대화 맥락에 반영됩니다.</string>
+    <string name="edit_message_field_label">메시지 내용</string>
+
+    <!-- Resolution Change Dialog -->
+    <string name="resolution_dialog_title">전송 해상도</string>
+    <string name="resolution_apply_all_title">현재 대화 전체에 적용할까요?</string>
+    <string name="resolution_apply_all_message">‘%1$s’ 해상도를 이 대화의 모든 사진에 적용할까요, 아니면 이 사진에만 적용할까요?</string>
+    <string name="resolution_apply_entire_conversation">대화 전체 적용</string>
+    <string name="resolution_apply_this_only">이 사진만 적용</string>
+    <string name="resolution_updated_conversation">대화 전체 해상도를 %1$s(으)로 변경했습니다</string>
+    <string name="resolution_updated_single">사진 해상도를 %1$s(으)로 변경했습니다</string>
+
+    <!-- Resolution Preset Labels -->
+    <string name="resolution_preset_default">기본값 (상속)</string>
+    <string name="resolution_preset_original">원본 (느림, 저장공간 2배)</string>
+    <string name="resolution_preset_high_4000">고화질 (4000px)</string>
+    <string name="resolution_preset_standard_2000">표준 (2000px)</string>
+    <string name="resolution_preset_saver_1000">절약 (1000px)</string>
+
+    <!-- Settings Bottom Sheet -->
+    <string name="settings_title">설정</string>
+    <string name="settings_tab_api">API 프리셋</string>
+    <string name="settings_tab_payload">컨텍스트·전송</string>
+    <string name="settings_tab_camera">카메라·언어</string>
+    <string name="settings_tab_prompt">시스템 지침</string>
+
+    <!-- API Preset Section -->
+    <string name="settings_api_presets_header">API 프리셋</string>
+    <string name="settings_add_preset">프리셋 추가</string>
+    <string name="settings_edit_preset">프리셋 편집</string>
+    <string name="settings_preset_alias_label">별칭</string>
+    <string name="settings_preset_alias_placeholder">예: Gemini Flash / 로컬 프록시</string>
+    <string name="settings_preset_provider_label">공급자</string>
+    <string name="provider_gemini">Google Gemini</string>
+    <string name="provider_openai">OpenAI 호환</string>
+    <string name="settings_preset_apikey_label">API 키</string>
+    <string name="settings_preset_apikey_placeholder">API 키를 입력하세요</string>
+    <string name="settings_preset_apikey_optional_hint">커스텀 Base URL 사용 시 선택 입력</string>
+    <string name="settings_preset_model_label">모델명 (Model ID)</string>
+    <string name="settings_preset_model_placeholder">예: gemini-2.5-flash 또는 gpt-4o</string>
+    <string name="settings_preset_custom_url_toggle">커스텀 Base URL 사용</string>
+    <string name="settings_preset_custom_url_label">Base URL</string>
+    <string name="settings_preset_custom_url_placeholder">https://api.example.com/v1</string>
+    <string name="settings_preset_endpoint_preview">요청 주소: %1$s</string>
+    <string name="settings_preset_url_invalid">URL은 http:// 또는 https://로 시작해야 합니다</string>
+    <string name="settings_preset_http_key_warning">주의: 암호화되지 않은 http:// 경로로 API 키를 전송하면 네트워크에 노출될 수 있습니다.</string>
+    <string name="settings_preset_local_host_tip">안내: 실기기에서 localhost는 휴대폰 자신을 의미합니다. 에뮬레이터에서 호스트 PC는 10.0.2.2를 사용하세요.</string>
+    <string name="settings_preset_image_format_label">이미지 전송 포맷</string>
+    <string name="image_format_webp">WebP (고효율, 기본)</string>
+    <string name="image_format_jpeg">JPEG (넓은 호환성)</string>
+    <string name="settings_preset_max_bytes_label">요청 크기 상한 (MB, 선택)</string>
+    <string name="settings_preset_max_bytes_hint">비워 두면 공급자 기본값 사용</string>
+    <string name="settings_preset_saved">프리셋이 저장되었습니다</string>
+    <string name="settings_preset_deleted">프리셋이 삭제되었습니다</string>
+    <string name="settings_preset_delete_title">API 프리셋을 삭제할까요?</string>
+    <string name="settings_preset_delete_message">‘%1$s’ 프리셋과 저장된 API 키를 삭제할까요?</string>
+    <string name="settings_connection_testing">연결 확인 중…</string>
+    <string name="settings_connection_success">연결에 성공했습니다</string>
+    <string name="settings_openai_file_api_disabled">OpenAI 호환 공급자는 항상 Base64 인라인 방식으로 이미지를 전송합니다.</string>
+
+    <!-- Payload & Context Section -->
+    <string name="settings_context_header">컨텍스트 및 이미지 전송</string>
+    <string name="settings_send_method_label">Gemini 이미지 전송 방식</string>
+    <string name="send_method_file_api">Gemini File API (48시간 캐시)</string>
+    <string name="send_method_base64">인라인 Base64</string>
+    <string name="settings_default_resolution_label">기본 전송 해상도</string>
+    <string name="settings_original_resolution_warning">원본 해상도는 최대 크기로 재인코딩하므로 처리 시간이 길고 저장 공간을 약 2배 사용합니다.</string>
+    <string name="settings_context_retention_label">대화 컨텍스트 범위</string>
+    <string name="context_mode_all">전체 대화 포함</string>
+    <string name="context_mode_sliding">최근 %1$d턴 유지</string>
+    <string name="settings_sliding_turns_label">슬라이딩 윈도우 턴 수: %1$d</string>
+    <string name="settings_auto_replace_old_images">이전 턴 사진 자동 텍스트 대치</string>
+    <string name="settings_auto_replace_old_images_desc">오래된 턴의 이미지 바이너리를 텍스트 요약으로 대체해 토큰과 용량을 절약합니다.</string>
+    <string name="settings_keep_recent_image_turns">최근 이미지 유지 턴 수: %1$d</string>
+    <string name="settings_openai_detail_label">OpenAI 이미지 Detail</string>
+    <string name="openai_detail_auto">Auto</string>
+    <string name="openai_detail_low">Low</string>
+    <string name="openai_detail_high">High</string>
+    <string name="settings_openai_developer_role">시스템 지침에 \'developer\' 역할 사용</string>
+    <string name="settings_openai_developer_role_desc">OpenAI 추론 모델(o1/o3/o4) 및 호환 프록시에서 권장됩니다.</string>
+    <string name="settings_bg_caption_toggle">백그라운드 사진 캡션 생성 (선택)</string>
+    <string name="settings_bg_caption_desc">추가 경량 API 호출로 사진 요약을 미리 생성해 이후 텍스트 대치 품질을 높입니다.</string>
+    <string name="settings_caption_model_label">캡션 전용 모델명 (선택)</string>
+    <string name="settings_storage_usage">이미지 저장 공간 사용량: %1$s</string>
+    <string name="settings_cleanup_storage">고아 및 만료 파일 정리</string>
+    <string name="settings_cleanup_done">저장소 정리를 완료했습니다</string>
+
+    <!-- Camera & Language Section -->
+    <string name="settings_camera_header">카메라</string>
+    <string name="settings_default_lens_label">기본 카메라</string>
+    <string name="settings_capture_resolution_label">촬영 해상도</string>
+    <string name="capture_res_max">최고 화질</string>
+    <string name="capture_res_balanced">균형</string>
+    <string name="capture_res_standard">표준 (빠름)</string>
+    <string name="settings_language_header">언어</string>
+    <string name="settings_language_label">앱 표시 언어</string>
+    <string name="language_system">시스템 기본값</string>
+    <string name="language_en_us">English (US)</string>
+    <string name="language_ko">한국어 (Korean)</string>
+
+    <!-- System Prompt Section -->
+    <string name="settings_system_prompt_header">기본 시스템 지침</string>
+    <string name="settings_system_prompt_desc">모든 새 대화 및 이어지는 비전 대화에 공통으로 적용됩니다.</string>
+    <string name="settings_system_prompt_label">시스템 프롬프트</string>
+    <string name="settings_reset_system_prompt">기본값으로 복원</string>
+    <string name="default_system_prompt">당신은 정확하고 친절한 시각 어시스턴트 Peek입니다. 제공된 이미지를 세밀하게 분석하여 사용자의 질문에 명확하고 간결하게 답변하세요.</string>
+
+    <!-- Context Text Replacement Templates -->
+    <string name="context_image_summary_template">[이전 턴 첨부 사진 요약: %1$s]</string>
+    <string name="context_image_question_template">[이전 턴 첨부 사진 (질문 맥락: %1$s)]</string>
+
+    <!-- Validation & Preflight Notices -->
+    <string name="validation_no_preset">먼저 설정에서 API 프리셋을 생성하고 선택해 주세요.</string>
+    <string name="validation_missing_api_key">선택한 프리셋의 API 키를 설정에서 입력해 주세요.</string>
+    <string name="validation_missing_model">선택한 프리셋의 모델명(Model ID)을 설정에서 입력해 주세요.</string>
+    <string name="validation_empty_send">질문을 입력하거나 사진을 최소 1장 첨부해 주세요.</string>
+    <string name="validation_resolution_updating">이미지 해상도를 변경하는 중입니다. 잠시만 기다려 주세요.</string>
+    <string name="preflight_switched_to_file_api">요청 크기가 커서 Gemini File API 방식으로 자동 전환했습니다.</string>
+    <string name="preflight_text_replaced_old_images">요청 크기가 커서 이전 턴 사진을 텍스트 요약으로 대치했습니다.</string>
+    <string name="preflight_downscaled_images">요청 크기가 커서 이미지 해상도를 %1$dpx로 자동 축소했습니다.</string>
+
+    <!-- Error Messages (Mapped from ApiError / errorCode) -->
+    <string name="error_auth">인증에 실패했습니다(401/403). 설정에서 API 키를 확인해 주세요.</string>
+    <string name="error_not_found">엔드포인트 또는 모델을 찾을 수 없습니다(404). 모델명과 Base URL을 확인해 주세요.</string>
+    <string name="error_payload_too_large">요청 크기가 서버 허용 한도(413)를 초과했습니다. 해상도를 낮추거나 이전 사진을 텍스트로 대치해 보세요.</string>
+    <string name="error_rate_limited">요청 한도(429)를 초과했습니다. 잠시 후 다시 시도해 주세요.</string>
+    <string name="error_server">원격 서버 오류(%1$d)가 발생했습니다. 잠시 후 다시 시도해 주세요.</string>
+    <string name="error_blocked">안전 또는 콘텐츠 정책에 의해 응답이 차단되었습니다.</string>
+    <string name="error_file_unavailable">서버에 업로드된 파일 참조를 찾을 수 없습니다. 재시도하거나 인라인 전송으로 전환해 보세요.</string>
+    <string name="error_network">네트워크 오류가 발생했습니다. 인터넷 연결 또는 서버 주소를 확인해 주세요.</string>
+    <string name="error_timeout">AI 서버 응답 대기 시간이 초과되었습니다.</string>
+    <string name="error_parse">서버 응답 형식을 해석할 수 없습니다: %1$s</string>
+    <string name="error_interrupted_by_exit">앱이 종료되어 이전 요청이 중단되었습니다. 재시도를 눌러 계속할 수 있습니다.</string>
+    <string name="error_unknown">알 수 없는 오류가 발생했습니다.</string>
+    <string name="error_keystore_corrupted_reenter_key">기기 키저장소 오류로 인해 보안 키 저장소가 초기화되었습니다. 설정에서 API 키를 다시 입력해 주세요.</string>
+</resources>
