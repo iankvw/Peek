@@ -976,9 +976,9 @@ val helper = RemoteActivityHelper(context, Executors.newSingleThreadExecutor())
   - [x] `WearBridgeListenerService.kt` 작성 및 `app/src/main/AndroidManifest.xml` 등록
 
 ### Phase 3: 워치 테마 · 데이터 · 통신 레이어 구현 (`:wear`)
-- [ ] `ui/theme/Color.kt` & `Theme.kt`: `#000000`, `#1E1F20`, `#282A2C`, `#F5B800` 컬러 매핑
-- [ ] `WearSettingsDataStore.kt`: `WearImageQuality` (기본값 `BALANCED_2000`), `WearInputMode` (기본값 `TEXT_KEYBOARD`) 영구 저장
-- [ ] `WearPhoneBridgeClient.kt` & `WearImageCache.kt`: `MessageClient` RPC/이벤트 수신, `DataClient` 설정 구독, `ChannelClient` 이미지 수신 캐싱
+- [x] `ui/theme/Color.kt` & `Theme.kt`: `#000000`, `#1E1F20`, `#282A2C`, `#F5B800` 컬러 매핑
+- [x] `WearSettingsDataStore.kt`: `WearImageQuality` (기본값 `BALANCED_2000`), `WearInputMode` (기본값 `TEXT_KEYBOARD`) 영구 저장
+- [x] `WearPhoneBridgeClient.kt` & `WearImageCache.kt`: `MessageClient` RPC/이벤트 수신, `DataClient` 설정 구독, `ChannelClient` 이미지 수신 캐싱 (`Semaphore(2)` 썸네일 동시성 제어 + 고화질 뷰어 우선 처리)
 
 ### Phase 4: 워치 화면 구현 (`:wear`)
 - [ ] `WearHomeScreen`: 타이틀(`Peek`) -> `새 대화` -> 채팅 목록(10+1) -> `더보기` (조건부) -> `설정`
