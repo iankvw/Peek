@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Peek</string>
+
+    <!-- Common Actions -->
+    <string name="action_cancel">Cancel</string>
+    <string name="action_confirm">Confirm</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_stop">Stop</string>
+    <string name="action_close">Close</string>
+    <string name="action_load_more">Load more</string>
+    <string name="action_report">Report</string>
+
+    <!-- Home Screen -->
+    <string name="home_new_conversation">New conversation</string>
+    <string name="home_settings">Settings</string>
+    <string name="home_empty_conversations">No conversations yet.</string>
+    <string name="home_checking_phone">Checking phone connection…</string>
+    <string name="home_phone_disconnected">Connect your phone to load conversations.</string>
+    <string name="home_delete_dialog_title">Delete conversation?</string>
+    <string name="home_delete_dialog_message">Delete \'%1$s\'?</string>
+    <string name="home_time_just_now">Just now</string>
+    <string name="home_time_minutes_ago">%1$dm ago</string>
+    <string name="home_time_hours_ago">%1$dh ago</string>
+    <string name="home_time_days_ago">%1$dd ago</string>
+    <string name="home_no_preset_hint">Configure an API preset on your phone first.</string>
+
+    <!-- Chat Screen -->
+    <string name="chat_default_new_title">New conversation</string>
+    <string name="chat_target_unconfigured">Configure API</string>
+    <string name="chat_loading_messages">Loading messages…</string>
+    <string name="chat_loading_older">Loading older…</string>
+    <string name="chat_empty_messages">Ask a question to start.</string>
+    <string name="chat_role_user">You</string>
+    <string name="chat_role_assistant">Peek AI</string>
+    <string name="chat_status_thinking">Analyzing…</string>
+    <string name="chat_status_cancelled">Request stopped.</string>
+    <string name="chat_badge_text_replaced">Text summary</string>
+    <string name="chat_reported_message_hidden">Reported response. Tap to view.</string>
+    <string name="chat_ai_disclaimer">Responses from connected AI providers may be inaccurate.</string>
+    <string name="chat_input_text_label">Message</string>
+    <string name="chat_input_voice_label">Speak</string>
+    <string name="chat_input_text_prompt">Enter message</string>
+    <string name="chat_input_voice_prompt">Ask Peek</string>
+    <string name="chat_stop_generation">Stop response</string>
+    <string name="chat_menu_served_model_label">Answered by</string>
+    <string name="chat_menu_report_response">Report response</string>
+    <string name="chat_send_failed_phone_disconnected">Unable to reach phone.</string>
+    <string name="chat_validation_no_preset">Check API preset in phone settings first.</string>
+    <string name="chat_validation_missing_model">Check Model ID in phone settings first.</string>
+    <string name="chat_validation_missing_api_key">Check API key in phone settings first.</string>
+
+    <!-- Error Messages (Mapped from ApiError / errorCode) -->
+    <string name="error_auth">Authentication failed (401/403). Check API key on phone.</string>
+    <string name="error_not_found">Endpoint or model not found (404).</string>
+    <string name="error_payload_too_large">Request payload too large (413).</string>
+    <string name="error_rate_limited">Rate limit exceeded (429). Try again shortly.</string>
+    <string name="error_server">Remote server returned an error (%1$d).</string>
+    <string name="error_blocked">Response was blocked by safety filters.</string>
+    <string name="error_file_unavailable">Referenced remote file is unavailable.</string>
+    <string name="error_network">Network error occurred on phone.</string>
+    <string name="error_timeout">Request timed out waiting for AI server.</string>
+    <string name="error_parse">Unexpected server response format: %1$s</string>
+    <string name="error_interrupted_by_exit">Previous request was interrupted. Tap Retry.</string>
+    <string name="error_unknown">An unexpected error occurred.</string>
+
+    <!-- Image Viewer -->
+    <string name="viewer_loading_image">Loading image…</string>
+    <string name="viewer_load_failed">Unable to load image from phone.</string>
+    <string name="cd_close_image_viewer">Close image viewer</string>
+    <string name="cd_message_image">Attached photo</string>
+
+    <!-- Report Screen -->
+    <string name="report_title">Report AI response</string>
+    <string name="report_subtitle">Select a reason to report and hide this response.</string>
+    <string name="report_reason_harmful">Harmful or dangerous content</string>
+    <string name="report_reason_hate">Hate speech or discrimination</string>
+    <string name="report_reason_inaccurate">Inaccurate or misleading info</string>
+    <string name="report_reason_other">Other</string>
+    <string name="report_success_feedback">Reported and synced with phone</string>
+    <string name="report_failed_feedback">Failed to send report to phone</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_photo_quality">Photo View Quality</string>
+    <string name="settings_default_target">Default API Preset/Group</string>
+    <string name="settings_default_input">Default Input Method</string>
+    <string name="settings_privacy_policy">Privacy Policy</string>
+    <string name="settings_trademark_notice">Peek is an independent client app and is not affiliated with, endorsed, or sponsored by Google, OpenAI, or any other AI providers. Gemini, OpenAI, and all related names are trademarks of their respective owners.</string>
+
+    <!-- Quality Options -->
+    <string name="quality_original">Max Quality (Original)</string>
+    <string name="quality_high_4000">High (4000px)</string>
+    <string name="quality_balanced_2000">Balanced (2000px)</string>
+    <string name="quality_standard_1000">Standard/Fast (1000px)</string>
+
+    <!-- Input Mode Options -->
+    <string name="input_mode_keyboard">Text keyboard</string>
+    <string name="input_mode_voice">Voice input</string>
+
+    <!-- Target & Privacy Feedback -->
+    <string name="settings_group_badge">Group</string>
+    <string name="settings_no_targets">No presets synced from phone yet.</string>
+    <string name="settings_target_update_failed">Failed to update target on phone.</string>
+    <string name="privacy_policy_url">https://iank.im/peek/privacy</string>
+    <string name="privacy_opened_on_phone">Opened on your phone</string>
+    <string name="privacy_open_failed">Could not open on phone.\nVisit: iank.im/peek/privacy</string>
+
+    <!-- Accessibility -->
+    <string name="cd_switch_to_voice">Switch to voice input</string>
+    <string name="cd_switch_to_keyboard">Switch to text keyboard</string>
+</resources>

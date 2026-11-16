@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "peek"
-include(":app")
+include(":app", ":wear")

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Peek</string>
+
+    <!-- Common Actions -->
+    <string name="action_cancel">취소</string>
+    <string name="action_confirm">확인</string>
+    <string name="action_delete">삭제</string>
+    <string name="action_retry">재시도</string>
+    <string name="action_stop">중지</string>
+    <string name="action_close">닫기</string>
+    <string name="action_load_more">더보기</string>
+    <string name="action_report">신고</string>
+
+    <!-- Home Screen -->
+    <string name="home_new_conversation">새 대화</string>
+    <string name="home_settings">설정</string>
+    <string name="home_empty_conversations">아직 대화가 없습니다.</string>
+    <string name="home_checking_phone">휴대폰 연결 확인 중…</string>
+    <string name="home_phone_disconnected">대화를 불러오려면 휴대폰을 연결해 주세요.</string>
+    <string name="home_delete_dialog_title">대화를 삭제할까요?</string>
+    <string name="home_delete_dialog_message">‘%1$s’ 대화를 삭제할까요?</string>
+    <string name="home_time_just_now">방금 전</string>
+    <string name="home_time_minutes_ago">%1$d분 전</string>
+    <string name="home_time_hours_ago">%1$d시간 전</string>
+    <string name="home_time_days_ago">%1$d일 전</string>
+    <string name="home_no_preset_hint">휴대폰 앱에서 API 프리셋을 먼저 설정해 주세요.</string>
+
+    <!-- Chat Screen -->
+    <string name="chat_default_new_title">새 대화</string>
+    <string name="chat_target_unconfigured">API 설정 필요</string>
+    <string name="chat_loading_messages">메시지 불러오는 중…</string>
+    <string name="chat_loading_older">이전 메시지 불러오는 중…</string>
+    <string name="chat_empty_messages">질문을 입력해 대화를 시작하세요.</string>
+    <string name="chat_role_user">나</string>
+    <string name="chat_role_assistant">Peek AI</string>
+    <string name="chat_status_thinking">분석 중…</string>
+    <string name="chat_status_cancelled">요청이 중지되었습니다.</string>
+    <string name="chat_badge_text_replaced">텍스트 요약</string>
+    <string name="chat_reported_message_hidden">신고된 응답입니다. 탭하여 보기</string>
+    <string name="chat_ai_disclaimer">연결된 AI 제공자 및 모델에 따라 부정확한 응답이 생성될 수 있습니다.</string>
+    <string name="chat_input_text_label">메시지 입력</string>
+    <string name="chat_input_voice_label">말하기</string>
+    <string name="chat_input_text_prompt">메시지를 입력하세요</string>
+    <string name="chat_input_voice_prompt">Peek에게 질문하기</string>
+    <string name="chat_stop_generation">응답 중지</string>
+    <string name="chat_menu_served_model_label">응답 모델</string>
+    <string name="chat_menu_report_response">응답 신고</string>
+    <string name="chat_send_failed_phone_disconnected">휴대폰에 연결할 수 없습니다.</string>
+    <string name="chat_validation_no_preset">폰 앱 설정에서 API 프리셋을 먼저 확인해 주세요.</string>
+    <string name="chat_validation_missing_model">폰 앱 설정에서 모델명(Model ID)을 확인해 주세요.</string>
+    <string name="chat_validation_missing_api_key">폰 앱 설정에서 API 키를 먼저 확인해 주세요.</string>
+
+    <!-- Error Messages (Mapped from ApiError / errorCode) -->
+    <string name="error_auth">인증 실패(401/403). 폰 설정에서 API 키를 확인하세요.</string>
+    <string name="error_not_found">엔드포인트 또는 모델을 찾을 수 없습니다(404).</string>
+    <string name="error_payload_too_large">요청 크기가 서버 한도(413)를 초과했습니다.</string>
+    <string name="error_rate_limited">요청 한도(429) 초과. 잠시 후 다시 시도하세요.</string>
+    <string name="error_server">원격 서버 오류(%1$d)가 발생했습니다.</string>
+    <string name="error_blocked">안전 정책에 의해 응답이 차단되었습니다.</string>
+    <string name="error_file_unavailable">서버에 업로드된 파일 참조를 찾을 수 없습니다.</string>
+    <string name="error_network">휴대폰에서 네트워크 오류가 발생했습니다.</string>
+    <string name="error_timeout">AI 서버 응답 대기 시간이 초과되었습니다.</string>
+    <string name="error_parse">서버 응답 형식 오류: %1$s</string>
+    <string name="error_interrupted_by_exit">이전 요청이 중단되었습니다. 재시도를 누르세요.</string>
+    <string name="error_unknown">알 수 없는 오류가 발생했습니다.</string>
+
+    <!-- Image Viewer -->
+    <string name="viewer_loading_image">사진 불러오는 중…</string>
+    <string name="viewer_load_failed">휴대폰에서 사진을 불러오지 못했습니다.</string>
+    <string name="cd_close_image_viewer">이미지 뷰어 닫기</string>
+    <string name="cd_message_image">첨부 사진</string>
+
+    <!-- Report Screen -->
+    <string name="report_title">AI 응답 신고</string>
+    <string name="report_subtitle">이 응답을 신고하고 숨길 사유를 선택하세요.</string>
+    <string name="report_reason_harmful">유해하거나 위험한 콘텐츠</string>
+    <string name="report_reason_hate">혐오 또는 차별적 표현</string>
+    <string name="report_reason_inaccurate">부정확한 정보</string>
+    <string name="report_reason_other">기타</string>
+    <string name="report_success_feedback">신고가 완료되어 폰과 동기화되었습니다</string>
+    <string name="report_failed_feedback">휴대폰으로 신고를 전송하지 못했습니다</string>
+
+    <!-- Settings -->
+    <string name="settings_title">설정</string>
+    <string name="settings_photo_quality">사진 보기 화질</string>
+    <string name="settings_default_target">기본 API 프리셋/그룹</string>
+    <string name="settings_default_input">기본 입력 방식</string>
+    <string name="settings_privacy_policy">개인정보처리방침</string>
+    <string name="settings_trademark_notice">Peek는 독립적인 클라이언트 앱으로 Google, OpenAI 등 언급된 어떠한 AI 제공자와도 제휴 또는 보증 관계가 없습니다. Gemini, OpenAI 및 모든 제품명은 각 소유자의 등록 상표입니다.</string>
+
+    <!-- Quality Options -->
+    <string name="quality_original">최고 화질 (원본)</string>
+    <string name="quality_high_4000">높음 (4000px)</string>
+    <string name="quality_balanced_2000">균형 (2000px)</string>
+    <string name="quality_standard_1000">표준/빠름 (1000px)</string>
+
+    <!-- Input Mode Options -->
+    <string name="input_mode_keyboard">텍스트 키보드</string>
+    <string name="input_mode_voice">음성 입력</string>
+
+    <!-- Target & Privacy Feedback -->
+    <string name="settings_group_badge">그룹</string>
+    <string name="settings_no_targets">휴대폰에서 동기화된 프리셋이 없습니다.</string>
+    <string name="settings_target_update_failed">휴대폰 기본 타겟 변경에 실패했습니다.</string>
+    <string name="privacy_policy_url">https://iank.im/peek/privacy</string>
+    <string name="privacy_opened_on_phone">폰에서 열었습니다</string>
+    <string name="privacy_open_failed">폰에서 열지 못했습니다.\n주소: iank.im/peek/privacy</string>
+
+    <!-- Accessibility -->
+    <string name="cd_switch_to_voice">음성 입력으로 전환</string>
+    <string name="cd_switch_to_keyboard">텍스트 키보드로 전환</string>
+</resources>
