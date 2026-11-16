@@ -248,7 +248,7 @@ private fun GalleryOnlyPlaceholder(
                 Text(
                     text = stringResource(R.string.camera_permission_subtitle),
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFFD0D7DE),
+                    color = Color(0xFFC4C7C5),
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(18.dp))

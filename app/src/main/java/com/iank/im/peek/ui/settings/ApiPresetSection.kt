@@ -88,7 +88,7 @@ fun ApiPresetSection(
     var provider by rememberSaveable { mutableStateOf(ApiProvider.GEMINI) }
     var apiKey by remember { mutableStateOf("") }
     var showApiKey by remember { mutableStateOf(false) }
-    var modelId by rememberSaveable { mutableStateOf("gemini-2.5-flash") }
+    var modelId by rememberSaveable { mutableStateOf("gemini-flash-latest") }
     var customUrlEnabled by rememberSaveable { mutableStateOf(false) }
     var customUrlInput by rememberSaveable { mutableStateOf("") }
     var payloadFormat by rememberSaveable { mutableStateOf(ImagePayloadFormat.WEBP) }
@@ -106,7 +106,7 @@ fun ApiPresetSection(
             provider = ApiProvider.GEMINI
             apiKey = ""
             showApiKey = false
-            modelId = "gemini-2.5-flash"
+            modelId = "gemini-flash-latest"
             customUrlEnabled = false
             customUrlInput = ""
             payloadFormat = ImagePayloadFormat.WEBP
@@ -252,7 +252,7 @@ fun ApiPresetSection(
                                 provider = ApiProvider.GEMINI
                                 customUrlEnabled = false
                                 if (modelId.isBlank() || modelId.startsWith("gpt-")) {
-                                    modelId = "gemini-2.5-flash"
+                                    modelId = "gemini-flash-latest"
                                 }
                                 onResetConnectionTest()
                             },

@@ -82,6 +82,7 @@ class MainViewModel @Inject constructor(
     private val drawerSearchQueryFlow = MutableStateFlow("")
     private val hasCameraPermissionFlow = MutableStateFlow(false)
     private val activeCameraLensFlow = MutableStateFlow(CameraLensOption.BACK)
+    private var lastRearCameraLens: CameraLensOption = CameraLensOption.BACK
     private val lensInitializedFromSettings = MutableStateFlow(false)
     private val captureInFlightFlow = MutableStateFlow(0)
     private val overlayFlow = MutableStateFlow<OverlayState>(OverlayState.None)
@@ -241,6 +242,9 @@ class MainViewModel @Inject constructor(
             settingsRepository.settings.collect { settings ->
                 if (!lensInitializedFromSettings.value) {
                     activeCameraLensFlow.value = settings.defaultCameraLens
+                    if (!settings.defaultCameraLens.isFront) {
+                        lastRearCameraLens = settings.defaultCameraLens
+                    }
                     lensInitializedFromSettings.value = true
                 }
             }
@@ -268,10 +272,14 @@ class MainViewModel @Inject constructor(
 
     fun onCameraLensFallback(fallbackLens: CameraLensOption) {
         activeCameraLensFlow.value = fallbackLens
-        val lensNameRes = if (fallbackLens == CameraLensOption.BACK) {
-            R.string.camera_lens_back
-        } else {
-            R.string.camera_lens_front
+        if (!fallbackLens.isFront) {
+            lastRearCameraLens = fallbackLens
+        }
+        val lensNameRes = when (fallbackLens) {
+            CameraLensOption.BACK_ULTRA_WIDE -> R.string.camera_lens_back_ultra_wide
+            CameraLensOption.BACK -> R.string.camera_lens_back
+            CameraLensOption.BACK_TELEPHOTO -> R.string.camera_lens_back_telephoto
+            CameraLensOption.FRONT -> R.string.camera_lens_front
         }
         val localizedLens = resources.getString(lensNameRes)
         _events.tryEmit(
@@ -281,9 +289,22 @@ class MainViewModel @Inject constructor(
         )
     }
 
+    fun selectCameraLens(lens: CameraLensOption) {
+        if (captureInFlightFlow.value > 0) return
+        if (!lens.isFront) {
+            lastRearCameraLens = lens
+        }
+        activeCameraLensFlow.value = lens
+        cameraErrorTextFlow.value = null
+    }
+
     fun toggleCameraLens() {
         if (captureInFlightFlow.value > 0) return
-        activeCameraLensFlow.value = activeCameraLensFlow.value.toggled()
+        val current = activeCameraLensFlow.value
+        if (!current.isFront) {
+            lastRearCameraLens = current
+        }
+        activeCameraLensFlow.value = current.toggled(lastRearCameraLens)
         cameraErrorTextFlow.value = null
     }
 
@@ -485,6 +506,21 @@ class MainViewModel @Inject constructor(
 
     fun detachContinuingConversation() {
         setActiveConversationId(null)
+    }
+
+    fun returnToActiveConversationFromCamera() {
+        _events.tryEmit(UiEvent.HideKeyboardAndClearFocus)
+        overlayFlow.value = OverlayState.None
+        val currentPending = pendingAttachmentsFlow.value
+        if (currentPending.isNotEmpty()) {
+            updatePendingAttachments(emptyList())
+            viewModelScope.launch(Dispatchers.IO) {
+                stageAttachmentUseCase.removePendingList(currentPending)
+            }
+        }
+        if (activeConversationIdFlow.value != null) {
+            setScreenMode(ScreenMode.CHAT_ACTIVE)
+        }
     }
 
     fun startNewConversationFromDrawer() {
@@ -800,6 +836,9 @@ class MainViewModel @Inject constructor(
     fun updateDefaultCameraLens(lens: CameraLensOption) {
         viewModelScope.launch {
             settingsRepository.updateDefaultCameraLens(lens)
+            if (!lens.isFront) {
+                lastRearCameraLens = lens
+            }
             activeCameraLensFlow.value = lens
         }
     }

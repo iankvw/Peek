@@ -21,6 +21,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -35,9 +43,13 @@ import com.iank.im.peek.domain.model.ImageResolutionPreset
 import com.iank.im.peek.domain.model.ImageSendMethod
 import com.iank.im.peek.domain.model.OpenAiImageDetail
 import com.iank.im.peek.ui.chat.shortResolutionLabel
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, FlowPreview::class)
 @Composable
 fun PayloadContextSection(
     settings: AppSettings,
@@ -289,9 +301,33 @@ fun PayloadContextSection(
         }
 
         if (settings.backgroundCaptionEnabled) {
+            var localCaptionModelId by remember { mutableStateOf(settings.captionModelId) }
+            val latestOnUpdateCaptionModel by rememberUpdatedState(onUpdateCaptionModelId)
+            val latestSavedCaptionModel by rememberUpdatedState(settings.captionModelId)
+
+            LaunchedEffect(Unit) {
+                snapshotFlow { localCaptionModelId }
+                    .drop(1)
+                    .distinctUntilChanged()
+                    .debounce(400L)
+                    .collect { updated ->
+                        if (updated != latestSavedCaptionModel) {
+                            latestOnUpdateCaptionModel(updated)
+                        }
+                    }
+            }
+
+            DisposableEffect(Unit) {
+                onDispose {
+                    if (localCaptionModelId != latestSavedCaptionModel) {
+                        latestOnUpdateCaptionModel(localCaptionModelId)
+                    }
+                }
+            }
+
             OutlinedTextField(
-                value = settings.captionModelId,
-                onValueChange = onUpdateCaptionModelId,
+                value = localCaptionModelId,
+                onValueChange = { localCaptionModelId = it },
                 label = { Text(stringResource(R.string.settings_caption_model_label)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()

@@ -151,7 +151,7 @@ fun MarkdownText(
                 }
                 is MarkdownBlock.CodeBlock -> {
                     Surface(
-                        color = Color(0xFF10151C),
+                        color = Color(0xFF131314),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -167,13 +167,13 @@ fun MarkdownText(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(Color(0xFF19212C))
+                                    .background(Color(0xFF1E1F20))
                                     .padding(start = 12.dp, end = 4.dp, top = 2.dp, bottom = 2.dp)
                             ) {
                                 Text(
                                     text = block.language.ifBlank { "code" },
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFFA0B0C0)
+                                    color = Color(0xFFC4C7C5)
                                 )
                                 IconButton(
                                     onClick = { onCopyCode(block.code) },
@@ -182,7 +182,7 @@ fun MarkdownText(
                                     Icon(
                                         imageVector = Icons.Rounded.ContentCopy,
                                         contentDescription = stringResource(R.string.cd_copy_code_block),
-                                        tint = Color(0xFFD0DCE8),
+                                        tint = Color(0xFFE3E3E3),
                                         modifier = Modifier.size(15.dp)
                                     )
                                 }
@@ -194,7 +194,7 @@ fun MarkdownText(
                                     fontSize = 12.5.sp,
                                     lineHeight = 18.sp
                                 ),
-                                color = Color(0xFFE6EDF3),
+                                color = Color(0xFFE3E3E3),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .horizontalScroll(rememberScrollState())

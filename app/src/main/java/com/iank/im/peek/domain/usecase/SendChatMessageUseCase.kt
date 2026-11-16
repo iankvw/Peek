@@ -44,6 +44,9 @@ class SendChatMessageUseCase @Inject constructor(
         apiKey: String
     ): String {
         val trimmedText = userText.trim()
+        val isPhotoOnlyFirstTurn = conversationId == null &&
+            trimmedText.isEmpty() &&
+            pendingAttachments.isNotEmpty()
         val title = when {
             trimmedText.isNotEmpty() -> trimmedText.replace(Regex("\\s+"), " ").take(48)
             pendingAttachments.isNotEmpty() -> resources.getString(R.string.default_photo_conversation_title)
@@ -70,7 +73,8 @@ class SendChatMessageUseCase @Inject constructor(
             userMessageId = userMessageId,
             assistantMessageId = assistantMessageId,
             preset = preset,
-            apiKey = apiKey
+            apiKey = apiKey,
+            autoTitlePhotoInquiry = isPhotoOnlyFirstTurn
         )
         return resolvedConversationId
     }
@@ -120,7 +124,8 @@ class SendChatMessageUseCase @Inject constructor(
         userMessageId: String,
         assistantMessageId: String,
         preset: ApiPreset,
-        apiKey: String
+        apiKey: String,
+        autoTitlePhotoInquiry: Boolean = false
     ) {
         activeSendRegistry.cancel(conversationId)
 
@@ -190,6 +195,25 @@ class SendChatMessageUseCase @Inject constructor(
                                     providerMetadataJson = finalRes.providerMetadataJson
                                 )
                                 val userMsg = conversationRepository.getMessage(userMessageId)
+                                val currentConv = conversationRepository.getConversation(conversationId)
+                                val defaultPhotoTitle = resources.getString(R.string.default_photo_conversation_title)
+                                val shouldAutoTitle = autoTitlePhotoInquiry ||
+                                    (userMsg != null &&
+                                        userMsg.turnIndex == 1 &&
+                                        userMsg.textContent.isBlank() &&
+                                        userMsg.attachments.isNotEmpty() &&
+                                        currentConv?.title == defaultPhotoTitle)
+
+                                if (shouldAutoTitle) {
+                                    val fallbackTitle = sanitizeAutoTitle(finalRes.textContent, 30)
+                                    if (fallbackTitle.isNotBlank()) {
+                                        conversationRepository.updateConversationTitle(
+                                            conversationId = conversationId,
+                                            title = fallbackTitle
+                                        )
+                                    }
+                                }
+
                                 if (settings.backgroundCaptionEnabled && userMsg != null && userMsg.attachments.isNotEmpty()) {
                                     applicationScope.launch {
                                         generateImageCaptionUseCase(
@@ -197,7 +221,8 @@ class SendChatMessageUseCase @Inject constructor(
                                             attachments = userMsg.attachments,
                                             preset = preset,
                                             apiKey = apiKey,
-                                            settings = settings
+                                            settings = settings,
+                                            updateConversationTitleFromCaption = shouldAutoTitle
                                         )
                                     }
                                 }
@@ -224,5 +249,31 @@ class SendChatMessageUseCase @Inject constructor(
             }
         }
         activeSendRegistry.register(conversationId, assistantMessageId, launchedJob)
+    }
+
+    companion object {
+        fun sanitizeAutoTitle(raw: String, maxLength: Int = 30): String {
+            val withoutCodeBlocks = raw.replace(Regex("```[\\s\\S]*?```"), " ")
+            val withoutLinks = withoutCodeBlocks.replace(Regex("\\[([^\\]]+)]\\([^)]*\\)"), "$1")
+            val cleaned = withoutLinks
+                .lineSequence()
+                .map { line ->
+                    line.trim()
+                        .replace(Regex("^(#{1,6}|>|[-*+]|\\d+\\.)\\s+"), "")
+                        .replace(Regex("[*_`~\\[\\]]"), "")
+                        .trim()
+                }
+                .firstOrNull { it.isNotBlank() }
+                .orEmpty()
+                .replace(Regex("\\s+"), " ")
+                .trim()
+
+            if (cleaned.isEmpty()) return ""
+            return if (cleaned.length > maxLength) {
+                cleaned.take(maxLength).trimEnd()
+            } else {
+                cleaned
+            }
+        }
     }
 }

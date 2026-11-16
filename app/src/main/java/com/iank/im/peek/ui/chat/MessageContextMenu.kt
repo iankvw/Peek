@@ -1,10 +1,16 @@
 package com.iank.im.peek.ui.chat
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -17,14 +23,18 @@ import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.iank.im.peek.R
 import com.iank.im.peek.domain.model.ChatMessage
 import com.iank.im.peek.domain.model.MessageAttachment
@@ -37,39 +47,37 @@ fun MessageContextMenuDialog(
     onEditMessage: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.menu_copy_text)) },
-                    leadingContent = {
-                        Icon(Icons.Rounded.ContentCopy, contentDescription = null)
-                    },
-                    modifier = Modifier.clickable(onClick = onCopyText)
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = RoundedCornerShape(24.dp),
+            tonalElevation = 0.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 12.dp)
+            ) {
+                ContextMenuActionRow(
+                    icon = Icons.Rounded.ContentCopy,
+                    label = stringResource(R.string.menu_copy_text),
+                    onClick = onCopyText
                 )
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.menu_select_text)) },
-                    leadingContent = {
-                        Icon(Icons.Rounded.SelectAll, contentDescription = null)
-                    },
-                    modifier = Modifier.clickable(onClick = onSelectText)
+                ContextMenuActionRow(
+                    icon = Icons.Rounded.SelectAll,
+                    label = stringResource(R.string.menu_select_text),
+                    onClick = onSelectText
                 )
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.menu_edit_message)) },
-                    leadingContent = {
-                        Icon(Icons.Rounded.Edit, contentDescription = null)
-                    },
-                    modifier = Modifier.clickable(onClick = onEditMessage)
+                ContextMenuActionRow(
+                    icon = Icons.Rounded.Edit,
+                    label = stringResource(R.string.menu_edit_message),
+                    onClick = onEditMessage
                 )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.action_close))
             }
         }
-    )
+    }
 }
 
 @Composable
@@ -81,63 +89,81 @@ fun AttachmentContextMenuDialog(
     onChangeResolution: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.menu_copy_image)) },
-                    leadingContent = {
-                        Icon(Icons.Rounded.ContentCopy, contentDescription = null)
-                    },
-                    modifier = Modifier.clickable(onClick = onCopyImage)
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = RoundedCornerShape(24.dp),
+            tonalElevation = 0.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 12.dp)
+            ) {
+                ContextMenuActionRow(
+                    icon = Icons.Rounded.ContentCopy,
+                    label = stringResource(R.string.menu_copy_image),
+                    onClick = onCopyImage
                 )
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.menu_replace_image)) },
-                    leadingContent = {
-                        Icon(Icons.Rounded.SwapHoriz, contentDescription = null)
-                    },
-                    modifier = Modifier.clickable(onClick = onReplaceImage)
+                ContextMenuActionRow(
+                    icon = Icons.Rounded.SwapHoriz,
+                    label = stringResource(R.string.menu_replace_image),
+                    onClick = onReplaceImage
                 )
-                ListItem(
-                    headlineContent = {
-                        Text(
-                            stringResource(
-                                if (attachment.isTextReplaced) {
-                                    R.string.menu_toggle_text_replace_off
-                                } else {
-                                    R.string.menu_toggle_text_replace_on
-                                }
-                            )
-                        )
+                ContextMenuActionRow(
+                    icon = if (attachment.isTextReplaced) {
+                        Icons.Rounded.Image
+                    } else {
+                        Icons.Rounded.TextFields
                     },
-                    leadingContent = {
-                        Icon(
-                            imageVector = if (attachment.isTextReplaced) {
-                                Icons.Rounded.Image
-                            } else {
-                                Icons.Rounded.TextFields
-                            },
-                            contentDescription = null
-                        )
-                    },
-                    modifier = Modifier.clickable(onClick = onToggleTextReplacement)
+                    label = stringResource(
+                        if (attachment.isTextReplaced) {
+                            R.string.menu_toggle_text_replace_off
+                        } else {
+                            R.string.menu_toggle_text_replace_on
+                        }
+                    ),
+                    onClick = onToggleTextReplacement
                 )
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.menu_change_resolution)) },
-                    leadingContent = {
-                        Icon(Icons.Rounded.AspectRatio, contentDescription = null)
-                    },
-                    modifier = Modifier.clickable(onClick = onChangeResolution)
+                ContextMenuActionRow(
+                    icon = Icons.Rounded.AspectRatio,
+                    label = stringResource(R.string.menu_change_resolution),
+                    onClick = onChangeResolution
                 )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.action_close))
             }
         }
-    )
+    }
+}
+
+@Composable
+private fun ContextMenuActionRow(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
 }
 
 @Composable
@@ -147,6 +173,7 @@ fun TextSelectionDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = {
             Text(text = stringResource(R.string.chat_text_selection_title))
         },

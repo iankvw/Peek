@@ -42,11 +42,24 @@ fun CameraConfigSection(
                 text = stringResource(R.string.settings_default_lens_label),
                 style = MaterialTheme.typography.labelLarge
             )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                FilterChip(
+                    selected = settings.defaultCameraLens == CameraLensOption.BACK_ULTRA_WIDE,
+                    onClick = { onUpdateDefaultLens(CameraLensOption.BACK_ULTRA_WIDE) },
+                    label = { Text(stringResource(R.string.camera_lens_back_ultra_wide)) }
+                )
                 FilterChip(
                     selected = settings.defaultCameraLens == CameraLensOption.BACK,
                     onClick = { onUpdateDefaultLens(CameraLensOption.BACK) },
                     label = { Text(stringResource(R.string.camera_lens_back)) }
+                )
+                FilterChip(
+                    selected = settings.defaultCameraLens == CameraLensOption.BACK_TELEPHOTO,
+                    onClick = { onUpdateDefaultLens(CameraLensOption.BACK_TELEPHOTO) },
+                    label = { Text(stringResource(R.string.camera_lens_back_telephoto)) }
                 )
                 FilterChip(
                     selected = settings.defaultCameraLens == CameraLensOption.FRONT,
@@ -61,11 +74,19 @@ fun CameraConfigSection(
                 text = stringResource(R.string.settings_capture_resolution_label),
                 style = MaterialTheme.typography.labelLarge
             )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 FilterChip(
                     selected = settings.captureResolution == CaptureResolutionOption.MAX,
                     onClick = { onUpdateCaptureResolution(CaptureResolutionOption.MAX) },
                     label = { Text(stringResource(R.string.capture_res_max)) }
+                )
+                FilterChip(
+                    selected = settings.captureResolution == CaptureResolutionOption.HIGH,
+                    onClick = { onUpdateCaptureResolution(CaptureResolutionOption.HIGH) },
+                    label = { Text(stringResource(R.string.capture_res_high)) }
                 )
                 FilterChip(
                     selected = settings.captureResolution == CaptureResolutionOption.BALANCED,

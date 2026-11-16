@@ -1,10 +1,15 @@
 package com.iank.im.peek.ui.camera
 
 import android.content.Context
+import android.hardware.camera2.CameraCharacteristics
 import android.util.Size
 import android.view.OrientationEventListener
 import android.view.Surface
+import androidx.annotation.OptIn
+import androidx.camera.camera2.interop.Camera2CameraInfo
+import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.Camera
+import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.CameraState
 import androidx.camera.core.FocusMeteringAction
@@ -68,6 +73,8 @@ class CameraSessionController(
     private var boundPreview: Preview? = null
     private var boundImageCapture: ImageCapture? = null
     private var boundCamera: Camera? = null
+    private var boundCameraKey: String? = null
+    private var boundCaptureResolution: CaptureResolutionOption? = null
     private var cameraStateObserver: Observer<CameraState>? = null
     private var currentSurfaceProvider: Preview.SurfaceProvider? = null
 
@@ -112,6 +119,19 @@ class CameraSessionController(
         runCatching { camera.cameraControl.startFocusAndMetering(action) }
     }
 
+    private data class BackCameraSpec(
+        val cameraInfo: CameraInfo,
+        val cameraId: String,
+        val minFocalLength: Float
+    )
+
+    private data class LensBindingPlan(
+        val resolvedLens: CameraLensOption,
+        val selector: CameraSelector,
+        val cameraKey: String,
+        val targetZoomRatio: Float
+    )
+
     fun bindUseCases(
         provider: ProcessCameraProvider,
         requestedLens: CameraLensOption,
@@ -119,19 +139,33 @@ class CameraSessionController(
         onLensFallback: (CameraLensOption) -> Unit,
         onCameraError: (UiText?) -> Unit
     ) {
-        unbindOwnUseCases(provider)
         onCameraError(null)
 
-        val resolvedLens = resolveAvailableLens(provider, requestedLens)
-        if (resolvedLens == null) {
+        val plan = resolveLensPlan(provider, requestedLens)
+        if (plan == null) {
+            unbindOwnUseCases(provider)
             onCameraError(UiText.StringResource(R.string.camera_error_generic, "NO_CAMERA"))
             return
         }
-        if (resolvedLens != requestedLens) {
-            onLensFallback(resolvedLens)
+        if (plan.resolvedLens != requestedLens) {
+            onLensFallback(plan.resolvedLens)
         }
 
-        val selector = resolvedLens.toCameraSelector()
+        // Fast path: if already bound to the same underlying camera & capture resolution, just update zoom ratio
+        val existingCamera = boundCamera
+        if (existingCamera != null &&
+            boundPreview != null &&
+            boundImageCapture != null &&
+            boundCameraKey == plan.cameraKey &&
+            boundCaptureResolution == captureResolution
+        ) {
+            boundPreview?.surfaceProvider = currentSurfaceProvider
+            applyZoomRatio(existingCamera, plan.targetZoomRatio)
+            return
+        }
+
+        unbindOwnUseCases(provider)
+
         val preview = Preview.Builder().build().apply {
             surfaceProvider = currentSurfaceProvider
         }
@@ -140,25 +174,55 @@ class CameraSessionController(
             .setResolutionSelector(buildResolutionSelector(captureResolution))
             .build()
 
-        val bindResult = runCatching {
-            provider.bindToLifecycle(gatedOwner, selector, preview, imageCapture)
+        var activePlan = plan
+        var bindResult = runCatching {
+            provider.bindToLifecycle(gatedOwner, activePlan.selector, preview, imageCapture)
+        }
+
+        // Fallback to default logical back camera + zoom ratio if binding a specific physical camera failed
+        if (bindResult.isFailure && !activePlan.resolvedLens.isFront && activePlan.cameraKey != "BACK_DEFAULT") {
+            val fallbackZoom = activePlan.resolvedLens.nominalZoomRatio
+            activePlan = LensBindingPlan(
+                resolvedLens = activePlan.resolvedLens,
+                selector = CameraSelector.DEFAULT_BACK_CAMERA,
+                cameraKey = "BACK_DEFAULT",
+                targetZoomRatio = fallbackZoom
+            )
+            bindResult = runCatching {
+                provider.bindToLifecycle(gatedOwner, activePlan.selector, preview, imageCapture)
+            }
         }
 
         bindResult.onSuccess { camera ->
             boundPreview = preview
             boundImageCapture = imageCapture
             boundCamera = camera
+            boundCameraKey = activePlan.cameraKey
+            boundCaptureResolution = captureResolution
+            applyZoomRatio(camera, activePlan.targetZoomRatio)
             observeCameraState(camera, onCameraError)
         }.onFailure { throwable ->
             boundPreview = null
             boundImageCapture = null
             boundCamera = null
+            boundCameraKey = null
+            boundCaptureResolution = null
             onCameraError(
                 UiText.StringResource(
                     R.string.camera_error_generic,
                     throwable.javaClass.simpleName
                 )
             )
+        }
+    }
+
+    private fun applyZoomRatio(camera: Camera, desiredZoomRatio: Float) {
+        val zoomState = camera.cameraInfo.zoomState.value
+        val minZoom = zoomState?.minZoomRatio ?: 0.5f
+        val maxZoom = zoomState?.maxZoomRatio ?: 8.0f
+        val clampedZoom = desiredZoomRatio.coerceIn(minZoom, maxZoom)
+        runCatching {
+            camera.cameraControl.setZoomRatio(clampedZoom)
         }
     }
 
@@ -208,6 +272,8 @@ class CameraSessionController(
         boundPreview = null
         boundImageCapture = null
         boundCamera = null
+        boundCameraKey = null
+        boundCaptureResolution = null
     }
 
     private fun observeCameraState(camera: Camera, onCameraError: (UiText?) -> Unit) {
@@ -243,28 +309,122 @@ class CameraSessionController(
         cameraStateObserver = null
     }
 
-    private fun resolveAvailableLens(
+    private fun resolveLensPlan(
         provider: ProcessCameraProvider,
         requested: CameraLensOption
-    ): CameraLensOption? {
-        if (runCatching { provider.hasCamera(requested.toCameraSelector()) }.getOrDefault(false)) {
-            return requested
+    ): LensBindingPlan? {
+        val hasBack = runCatching { provider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA) }.getOrDefault(false)
+        val hasFront = runCatching { provider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA) }.getOrDefault(false)
+
+        if (requested.isFront) {
+            if (hasFront) {
+                return LensBindingPlan(
+                    resolvedLens = CameraLensOption.FRONT,
+                    selector = CameraSelector.DEFAULT_FRONT_CAMERA,
+                    cameraKey = "FRONT",
+                    targetZoomRatio = 1.0f
+                )
+            }
+            if (hasBack) {
+                return buildBackLensPlan(provider, CameraLensOption.BACK)
+            }
+            return null
+        } else {
+            if (hasBack) {
+                return buildBackLensPlan(provider, requested)
+            }
+            if (hasFront) {
+                return LensBindingPlan(
+                    resolvedLens = CameraLensOption.FRONT,
+                    selector = CameraSelector.DEFAULT_FRONT_CAMERA,
+                    cameraKey = "FRONT",
+                    targetZoomRatio = 1.0f
+                )
+            }
+            return null
         }
-        val fallback = requested.toggled()
-        if (runCatching { provider.hasCamera(fallback.toCameraSelector()) }.getOrDefault(false)) {
-            return fallback
-        }
-        return null
     }
 
-    private fun CameraLensOption.toCameraSelector(): CameraSelector = when (this) {
-        CameraLensOption.BACK -> CameraSelector.DEFAULT_BACK_CAMERA
-        CameraLensOption.FRONT -> CameraSelector.DEFAULT_FRONT_CAMERA
+    @OptIn(ExperimentalCamera2Interop::class)
+    private fun inspectBackCameraSpecs(provider: ProcessCameraProvider): List<BackCameraSpec> {
+        return runCatching {
+            provider.availableCameraInfos.mapNotNull { info ->
+                val c2 = Camera2CameraInfo.from(info)
+                val facing = c2.getCameraCharacteristic(CameraCharacteristics.LENS_FACING)
+                if (facing != CameraCharacteristics.LENS_FACING_BACK) return@mapNotNull null
+                val focals = c2.getCameraCharacteristic(
+                    CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS
+                )
+                val minFocal = focals?.minOrNull() ?: return@mapNotNull null
+                BackCameraSpec(
+                    cameraInfo = info,
+                    cameraId = c2.cameraId,
+                    minFocalLength = minFocal
+                )
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    @OptIn(ExperimentalCamera2Interop::class)
+    private fun buildBackLensPlan(
+        provider: ProcessCameraProvider,
+        requestedBackLens: CameraLensOption
+    ): LensBindingPlan {
+        val specs = inspectBackCameraSpecs(provider)
+        if (specs.size > 1) {
+            val defaultBackInfo = runCatching {
+                CameraSelector.DEFAULT_BACK_CAMERA.filter(provider.availableCameraInfos).firstOrNull()
+            }.getOrNull()
+            val standardSpec = specs.firstOrNull { it.cameraInfo == defaultBackInfo }
+                ?: specs.sortedBy { it.minFocalLength }[specs.size / 2]
+
+            val matchedSpec: BackCameraSpec? = when (requestedBackLens) {
+                CameraLensOption.BACK_ULTRA_WIDE -> specs
+                    .filter { it.minFocalLength < standardSpec.minFocalLength * 0.85f }
+                    .minByOrNull { it.minFocalLength }
+                CameraLensOption.BACK -> standardSpec
+                CameraLensOption.BACK_TELEPHOTO -> specs
+                    .filter { it.minFocalLength > standardSpec.minFocalLength * 1.35f }
+                    .maxByOrNull { it.minFocalLength }
+                CameraLensOption.FRONT -> null
+            }
+
+            if (matchedSpec != null) {
+                val targetId = matchedSpec.cameraId
+                val customSelector = CameraSelector.Builder()
+                    .requireLensFacing(CameraSelector.LENS_FACING_BACK)
+                    .addCameraFilter { cameraInfos ->
+                        cameraInfos.filter { info ->
+                            runCatching { Camera2CameraInfo.from(info).cameraId == targetId }
+                                .getOrDefault(false)
+                        }
+                    }
+                    .build()
+
+                if (runCatching { provider.hasCamera(customSelector) }.getOrDefault(false)) {
+                    return LensBindingPlan(
+                        resolvedLens = requestedBackLens,
+                        selector = customSelector,
+                        cameraKey = "BACK_ID:$targetId",
+                        targetZoomRatio = 1.0f
+                    )
+                }
+            }
+        }
+
+        // Single logical back camera (or physical lens combined under logical camera): use setZoomRatio preset
+        return LensBindingPlan(
+            resolvedLens = requestedBackLens,
+            selector = CameraSelector.DEFAULT_BACK_CAMERA,
+            cameraKey = "BACK_DEFAULT",
+            targetZoomRatio = requestedBackLens.nominalZoomRatio
+        )
     }
 
     private fun buildResolutionSelector(option: CaptureResolutionOption): ResolutionSelector {
         val strategy = when (option) {
             CaptureResolutionOption.MAX -> ResolutionStrategy.HIGHEST_AVAILABLE_STRATEGY
+            CaptureResolutionOption.HIGH,
             CaptureResolutionOption.BALANCED,
             CaptureResolutionOption.STANDARD -> ResolutionStrategy(
                 Size(option.targetLongSide, option.targetLongSide),

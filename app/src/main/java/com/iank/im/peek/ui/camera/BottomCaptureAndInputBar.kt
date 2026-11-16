@@ -139,7 +139,7 @@ fun BottomCaptureAndInputBar(
                     placeholder = {
                         Text(
                             text = stringResource(R.string.input_hint_ask_about_scene),
-                            color = Color(0xFFB8C2CC),
+                            color = Color(0xFFC4C7C5),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     },
@@ -256,7 +256,7 @@ private fun ShutterButton(
                 .fillMaxSize()
                 .padding(5.dp)
                 .clip(CircleShape)
-                .background(if (captureInFlight) Color(0xFFD0E4F5) else Color.White)
+                .background(if (captureInFlight) Color(0xFFFFE082) else Color.White)
         ) {
             if (captureInFlight) {
                 CircularProgressIndicator(
@@ -268,7 +268,7 @@ private fun ShutterButton(
                 Icon(
                     imageVector = Icons.Rounded.CameraAlt,
                     contentDescription = stringResource(R.string.cd_capture_photo),
-                    tint = Color(0xFF0D1218),
+                    tint = Color(0xFF131314),
                     modifier = Modifier.size(26.dp)
                 )
             }

@@ -19,11 +19,13 @@ class GenerateImageCaptionUseCase @Inject constructor(
         attachments: List<MessageAttachment>,
         preset: ApiPreset,
         apiKey: String,
-        settings: AppSettings
+        settings: AppSettings,
+        updateConversationTitleFromCaption: Boolean = false
     ) {
         if (!settings.backgroundCaptionEnabled || attachments.isEmpty()) return
         val conversationOverride = conversationRepository.getConversation(conversationId)?.overrideResolutionPreset
         val modelOverride = settings.captionModelId.trim().takeIf { it.isNotBlank() }
+        var titleUpdated = false
 
         for (attachment in attachments) {
             if (!attachment.imageCaption.isNullOrBlank()) continue
@@ -42,6 +44,13 @@ class GenerateImageCaptionUseCase @Inject constructor(
                 )
                 if (!caption.isNullOrBlank()) {
                     conversationRepository.updateAttachmentCaption(attachment.id, caption)
+                    if (updateConversationTitleFromCaption && !titleUpdated) {
+                        val cleanedTitle = SendChatMessageUseCase.sanitizeAutoTitle(caption, 30)
+                        if (cleanedTitle.isNotBlank()) {
+                            conversationRepository.updateConversationTitle(conversationId, cleanedTitle)
+                            titleUpdated = true
+                        }
+                    }
                 }
             }
         }

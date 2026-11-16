@@ -10,16 +10,28 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.iank.im.peek.R
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
+@OptIn(FlowPreview::class)
 @Composable
 fun SystemPromptSection(
     systemPrompt: String,
@@ -29,6 +41,30 @@ fun SystemPromptSection(
     val defaultPrompt = stringResource(R.string.default_system_prompt)
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val coroutineScope = rememberCoroutineScope()
+
+    var localPrompt by remember { mutableStateOf(systemPrompt) }
+    val latestOnUpdate by rememberUpdatedState(onUpdateSystemPrompt)
+    val latestSavedPrompt by rememberUpdatedState(systemPrompt)
+
+    LaunchedEffect(Unit) {
+        snapshotFlow { localPrompt }
+            .drop(1)
+            .distinctUntilChanged()
+            .debounce(400L)
+            .collect { updated ->
+                if (updated != latestSavedPrompt) {
+                    latestOnUpdate(updated)
+                }
+            }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            if (localPrompt != latestSavedPrompt) {
+                latestOnUpdate(localPrompt)
+            }
+        }
+    }
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -45,8 +81,8 @@ fun SystemPromptSection(
         )
 
         OutlinedTextField(
-            value = systemPrompt,
-            onValueChange = onUpdateSystemPrompt,
+            value = localPrompt,
+            onValueChange = { localPrompt = it },
             label = { Text(stringResource(R.string.settings_system_prompt_label)) },
             placeholder = { Text(defaultPrompt) },
             minLines = 5,
@@ -62,7 +98,10 @@ fun SystemPromptSection(
         )
 
         TextButton(
-            onClick = { onUpdateSystemPrompt("") },
+            onClick = {
+                localPrompt = ""
+                onUpdateSystemPrompt("")
+            },
             modifier = Modifier.align(Alignment.End)
         ) {
             Text(stringResource(R.string.settings_reset_system_prompt))

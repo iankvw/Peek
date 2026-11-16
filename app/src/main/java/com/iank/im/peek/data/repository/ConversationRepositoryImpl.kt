@@ -382,6 +382,13 @@ class ConversationRepositoryImpl @Inject constructor(
         messageDao.updateAttachmentCaption(attachmentId, caption)
     }
 
+    override suspend fun updateConversationTitle(conversationId: String, title: String) {
+        val trimmed = title.trim()
+        if (trimmed.isNotEmpty()) {
+            conversationDao.updateTitle(conversationId, trimmed)
+        }
+    }
+
     override suspend fun updateSingleAttachmentResolution(
         attachmentId: String,
         preset: ImageResolutionPreset

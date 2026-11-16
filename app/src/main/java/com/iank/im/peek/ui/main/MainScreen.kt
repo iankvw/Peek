@@ -284,6 +284,7 @@ fun MainScreen(
                         presets = uiState.presets,
                         selectedPreset = uiState.selectedPreset,
                         activeConversation = uiState.activeConversation,
+                        activeLens = uiState.activeCameraLens,
                         isPresetMenuOpen = uiState.overlay is OverlayState.PresetMenu,
                         hasCameraPermission = uiState.hasCameraPermission,
                         captureInFlight = uiState.captureInFlight,
@@ -299,8 +300,9 @@ fun MainScreen(
                         },
                         onSelectPreset = viewModel::selectPreset,
                         onOpenSettings = { viewModel.setOverlay(OverlayState.Settings) },
+                        onSelectLens = viewModel::selectCameraLens,
                         onSwitchLens = viewModel::toggleCameraLens,
-                        onDetachConversation = viewModel::detachContinuingConversation,
+                        onReturnToActiveChat = viewModel::returnToActiveConversationFromCamera,
                         modifier = Modifier.align(Alignment.TopCenter)
                     )
 
@@ -338,6 +340,8 @@ fun MainScreen(
                 ChatPanel(
                     conversation = uiState.activeConversation,
                     messages = uiState.messages,
+                    presets = uiState.presets,
+                    selectedPreset = uiState.selectedPreset,
                     pendingAttachments = uiState.pendingAttachments,
                     inputText = uiState.inputText,
                     canSend = uiState.canSend,
@@ -351,6 +355,8 @@ fun MainScreen(
                     onReturnToCamera = {
                         viewModel.navigateToCameraExplore(keepConversation = true)
                     },
+                    onNewConversation = viewModel::startNewConversationFromDrawer,
+                    onSelectPreset = viewModel::selectPreset,
                     onOpenSettings = { viewModel.setOverlay(OverlayState.Settings) },
                     onInputChanged = viewModel::updateInputText,
                     onRemovePending = viewModel::removePendingAttachment,

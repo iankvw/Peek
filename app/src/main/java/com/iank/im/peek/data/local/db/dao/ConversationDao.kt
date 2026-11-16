@@ -28,6 +28,9 @@ interface ConversationDao {
     @Query("UPDATE conversations SET updatedAt = :updatedAt WHERE id = :id")
     suspend fun updateUpdatedAt(id: String, updatedAt: Long)
 
+    @Query("UPDATE conversations SET title = :title WHERE id = :id")
+    suspend fun updateTitle(id: String, title: String)
+
     @Query("UPDATE conversations SET overrideResolutionPreset = :preset, updatedAt = :updatedAt WHERE id = :id")
     suspend fun updateOverrideResolution(id: String, preset: ImageResolutionPreset?, updatedAt: Long)
 

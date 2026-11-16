@@ -29,6 +29,8 @@
     <string name="cd_remove_pending_attachment">Remove pending attachment</string>
     <string name="cd_clear_continuing_conversation">Start a new conversation instead</string>
     <string name="cd_return_to_camera">Return to camera</string>
+    <string name="cd_return_to_chat">Return to conversation</string>
+    <string name="cd_new_conversation">Start a new conversation</string>
     <string name="cd_pending_thumbnail">Pending attachment thumbnail</string>
     <string name="cd_message_image">Message image attachment</string>
     <string name="cd_close_image_viewer">Close image viewer</string>
@@ -48,7 +50,9 @@
     <string name="camera_error_disabled_policy">Camera is disabled by device policy.</string>
     <string name="camera_error_generic">Unable to start camera preview (%1$s).</string>
     <string name="camera_lens_fallback_notice">Requested camera lens unavailable; switched to %1$s camera.</string>
-    <string name="camera_lens_back">Back</string>
+    <string name="camera_lens_back_ultra_wide">Rear Ultra-Wide (0.6x)</string>
+    <string name="camera_lens_back">Rear Wide (1x)</string>
+    <string name="camera_lens_back_telephoto">Rear Telephoto (3x)</string>
     <string name="camera_lens_front">Front</string>
     <string name="input_hint_ask_about_scene">Ask about what you see…</string>
     <string name="input_hint_follow_up">Ask a follow-up question…</string>
@@ -113,10 +117,10 @@
 
     <!-- Resolution Preset Labels -->
     <string name="resolution_preset_default">Default (Inherit)</string>
-    <string name="resolution_preset_original">Original (Slow, 2x storage)</string>
+    <string name="resolution_preset_original">Max Quality (Original)</string>
     <string name="resolution_preset_high_4000">High (4000px)</string>
-    <string name="resolution_preset_standard_2000">Standard (2000px)</string>
-    <string name="resolution_preset_saver_1000">Data Saver (1000px)</string>
+    <string name="resolution_preset_standard_2000">Balanced (2000px)</string>
+    <string name="resolution_preset_saver_1000">Standard/Fast (1000px)</string>
 
     <!-- Settings Bottom Sheet -->
     <string name="settings_title">Settings</string>
@@ -138,7 +142,7 @@
     <string name="settings_preset_apikey_placeholder">Enter API key</string>
     <string name="settings_preset_apikey_optional_hint">Optional when using a custom Base URL</string>
     <string name="settings_preset_model_label">Model ID</string>
-    <string name="settings_preset_model_placeholder">e.g. gemini-2.5-flash or gpt-4o</string>
+    <string name="settings_preset_model_placeholder">e.g. gemini-flash-latest or gpt-4o</string>
     <string name="settings_preset_custom_url_toggle">Use Custom Base URL</string>
     <string name="settings_preset_custom_url_label">Base URL</string>
     <string name="settings_preset_custom_url_placeholder">https://api.example.com/v1</string>
@@ -190,9 +194,10 @@
     <string name="settings_camera_header">Camera</string>
     <string name="settings_default_lens_label">Default Camera Lens</string>
     <string name="settings_capture_resolution_label">Capture Resolution</string>
-    <string name="capture_res_max">Max Quality</string>
-    <string name="capture_res_balanced">Balanced</string>
-    <string name="capture_res_standard">Standard (Fast)</string>
+    <string name="capture_res_max">Max Quality (Original)</string>
+    <string name="capture_res_high">High (4000px)</string>
+    <string name="capture_res_balanced">Balanced (2000px)</string>
+    <string name="capture_res_standard">Standard/Fast (1000px)</string>
     <string name="settings_language_header">Language</string>
     <string name="settings_language_label">App Display Language</string>
     <string name="language_system">System Default</string>
