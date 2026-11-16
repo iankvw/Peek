@@ -553,7 +553,6 @@ fun ApiPresetSection(
                     }
                 }
             }
-        }
     }
 
     Column(
