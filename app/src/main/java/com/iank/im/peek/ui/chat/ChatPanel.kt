@@ -155,7 +155,7 @@ fun ChatPanel(
                 }
             }
 
-            // Top bar with top-to-bottom vertical gradient (opaque at status bar -> transparent below)
+            // Top bar with eased multi-stop vertical gradient (opaque at status bar -> transparent below)
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -163,8 +163,10 @@ fun ChatPanel(
                     .onSizeChanged { topBarHeightPx = it.height }
                     .background(
                         Brush.verticalGradient(
-                            0.0f to bgColor,
-                            0.68f to bgColor.copy(alpha = 0.86f),
+                            0.0f to bgColor.copy(alpha = 0.98f),
+                            0.35f to bgColor.copy(alpha = 0.88f),
+                            0.65f to bgColor.copy(alpha = 0.52f),
+                            0.85f to bgColor.copy(alpha = 0.18f),
                             1.0f to Color.Transparent
                         )
                     )
@@ -356,7 +358,7 @@ fun ChatPanel(
                 }
             }
 
-            // Bottom chat composer with top-to-bottom vertical gradient (transparent -> opaque at nav bar)
+            // Bottom chat composer with eased multi-stop vertical gradient (transparent -> opaque at nav bar)
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -365,8 +367,10 @@ fun ChatPanel(
                     .background(
                         Brush.verticalGradient(
                             0.0f to Color.Transparent,
-                            0.28f to bgColor.copy(alpha = 0.88f),
-                            1.0f to bgColor
+                            0.15f to bgColor.copy(alpha = 0.18f),
+                            0.35f to bgColor.copy(alpha = 0.52f),
+                            0.65f to bgColor.copy(alpha = 0.88f),
+                            1.0f to bgColor.copy(alpha = 0.98f)
                         )
                     )
             ) {

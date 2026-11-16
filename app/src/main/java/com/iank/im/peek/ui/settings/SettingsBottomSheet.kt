@@ -1,10 +1,8 @@
 package com.iank.im.peek.ui.settings
 
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,31 +18,22 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.PrimaryScrollableTabRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.iank.im.peek.R
 import com.iank.im.peek.domain.model.ApiPreset
 import com.iank.im.peek.domain.model.AppLanguage
@@ -57,7 +46,6 @@ import com.iank.im.peek.domain.model.ImageSendMethod
 import com.iank.im.peek.domain.model.ModelGroup
 import com.iank.im.peek.domain.model.OpenAiImageDetail
 import com.iank.im.peek.ui.main.ConnectionTestUiState
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,79 +82,28 @@ fun SettingsBottomSheet(
     onUpdateLanguage: (AppLanguage) -> Unit,
     onUpdateSystemPrompt: (String) -> Unit
 ) {
-    // Block ModalBottomSheet's internal swipe-to-dismiss so scrolling body content never closes the sheet
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,
-        confirmValueChange = { false }
-    )
-    val coroutineScope = rememberCoroutineScope()
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
-    var headerDragY by remember { mutableFloatStateOf(0f) }
 
-    val absorbBodyOverscroll = remember {
-        object : NestedScrollConnection {
-            override fun onPostScroll(
-                consumed: Offset,
-                available: Offset,
-                source: NestedScrollSource
-            ): Offset = available
-
-            override suspend fun onPostFling(
-                consumed: Velocity,
-                available: Velocity
-            ): Velocity = available
-        }
-    }
-
-    fun animateClose() {
-        if (!sheetState.isVisible) {
-            onDismiss()
-            return
-        }
-        coroutineScope.launch {
-            sheetState.hide()
-        }.invokeOnCompletion {
-            if (!sheetState.isVisible) {
-                onDismiss()
-            }
-        }
-    }
-
-    ModalBottomSheet(
+    Dialog(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        dragHandle = null,
-        shape = RectangleShape,
-        containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp,
-        contentWindowInsets = { WindowInsets(0) },
-        modifier = Modifier.fillMaxSize()
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = false
+        )
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .imePadding()
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 0.dp,
+            modifier = Modifier.fillMaxSize()
         ) {
-            // Only the top header + tab row area supports downward swipe-to-close
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .pointerInput(Unit) {
-                        detectVerticalDragGestures(
-                            onDragStart = { headerDragY = 0f },
-                            onVerticalDrag = { _, dragAmount ->
-                                headerDragY += dragAmount
-                            },
-                            onDragEnd = {
-                                if (headerDragY > 64f) {
-                                    animateClose()
-                                }
-                                headerDragY = 0f
-                            }
-                        )
-                    }
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .imePadding()
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -179,7 +116,7 @@ fun SettingsBottomSheet(
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.weight(1f)
                     )
-                    IconButton(onClick = ::animateClose) {
+                    IconButton(onClick = onDismiss) {
                         Icon(
                             imageVector = Icons.Rounded.Close,
                             contentDescription = stringResource(R.string.action_close)
@@ -207,60 +144,59 @@ fun SettingsBottomSheet(
                         )
                     }
                 }
-            }
 
-            key(selectedTab) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .nestedScroll(absorbBodyOverscroll)
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 20.dp, vertical = 14.dp)
-                ) {
-                    when (selectedTab) {
-                        0 -> ApiPresetSection(
-                            presets = presets,
-                            modelGroups = modelGroups,
-                            selectedPresetId = selectedTargetId,
-                            connectionTestStatus = connectionTestStatus,
-                            onSelectPreset = onSelectPreset,
-                            onLoadApiKey = onLoadApiKey,
-                            onSavePreset = onSavePreset,
-                            onClonePreset = onClonePreset,
-                            onDeletePreset = onDeletePreset,
-                            onSaveModelGroup = onSaveModelGroup,
-                            onDeleteModelGroup = onDeleteModelGroup,
-                            onTestConnection = onTestConnection,
-                            onResetConnectionTest = onResetConnectionTest
-                        )
-                        1 -> PayloadContextSection(
-                            settings = settings,
-                            selectedPreset = selectedPreset,
-                            storageUsageBytes = storageUsageBytes,
-                            onUpdateSendMethod = onUpdateSendMethod,
-                            onUpdateDefaultResolution = onUpdateDefaultResolution,
-                            onUpdateContextRetention = onUpdateContextRetention,
-                            onUpdateAutoReplaceOldImages = onUpdateAutoReplaceOldImages,
-                            onUpdateKeepRecentImageTurns = onUpdateKeepRecentImageTurns,
-                            onUpdateOpenAiImageDetail = onUpdateOpenAiImageDetail,
-                            onUpdateOpenAiDeveloperRole = onUpdateOpenAiDeveloperRole,
-                            onUpdateBackgroundCaption = onUpdateBackgroundCaption,
-                            onUpdateCaptionModelId = onUpdateCaptionModelId,
-                            onCleanupStorage = onCleanupStorage
-                        )
-                        2 -> CameraConfigSection(
-                            settings = settings,
-                            onUpdateDefaultLens = onUpdateDefaultLens,
-                            onUpdateCaptureResolution = onUpdateCaptureResolution,
-                            onUpdateLanguage = onUpdateLanguage
-                        )
-                        3 -> SystemPromptSection(
-                            systemPrompt = settings.systemPrompt,
-                            onUpdateSystemPrompt = onUpdateSystemPrompt
-                        )
+                key(selectedTab) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 20.dp, vertical = 14.dp)
+                    ) {
+                        when (selectedTab) {
+                            0 -> ApiPresetSection(
+                                presets = presets,
+                                modelGroups = modelGroups,
+                                selectedPresetId = selectedTargetId,
+                                connectionTestStatus = connectionTestStatus,
+                                onSelectPreset = onSelectPreset,
+                                onLoadApiKey = onLoadApiKey,
+                                onSavePreset = onSavePreset,
+                                onClonePreset = onClonePreset,
+                                onDeletePreset = onDeletePreset,
+                                onSaveModelGroup = onSaveModelGroup,
+                                onDeleteModelGroup = onDeleteModelGroup,
+                                onTestConnection = onTestConnection,
+                                onResetConnectionTest = onResetConnectionTest
+                            )
+                            1 -> PayloadContextSection(
+                                settings = settings,
+                                selectedPreset = selectedPreset,
+                                storageUsageBytes = storageUsageBytes,
+                                onUpdateSendMethod = onUpdateSendMethod,
+                                onUpdateDefaultResolution = onUpdateDefaultResolution,
+                                onUpdateContextRetention = onUpdateContextRetention,
+                                onUpdateAutoReplaceOldImages = onUpdateAutoReplaceOldImages,
+                                onUpdateKeepRecentImageTurns = onUpdateKeepRecentImageTurns,
+                                onUpdateOpenAiImageDetail = onUpdateOpenAiImageDetail,
+                                onUpdateOpenAiDeveloperRole = onUpdateOpenAiDeveloperRole,
+                                onUpdateBackgroundCaption = onUpdateBackgroundCaption,
+                                onUpdateCaptionModelId = onUpdateCaptionModelId,
+                                onCleanupStorage = onCleanupStorage
+                            )
+                            2 -> CameraConfigSection(
+                                settings = settings,
+                                onUpdateDefaultLens = onUpdateDefaultLens,
+                                onUpdateCaptureResolution = onUpdateCaptureResolution,
+                                onUpdateLanguage = onUpdateLanguage
+                            )
+                            3 -> SystemPromptSection(
+                                systemPrompt = settings.systemPrompt,
+                                onUpdateSystemPrompt = onUpdateSystemPrompt
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
-                    Spacer(modifier = Modifier.height(24.dp))
                 }
             }
         }

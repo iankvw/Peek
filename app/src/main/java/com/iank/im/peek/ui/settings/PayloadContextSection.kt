@@ -87,14 +87,12 @@ fun PayloadContextSection(
             )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
-                    selected = !isOpenAi && settings.imageSendMethod == ImageSendMethod.FILE_API,
-                    enabled = !isOpenAi,
+                    selected = settings.imageSendMethod == ImageSendMethod.FILE_API,
                     onClick = { onUpdateSendMethod(ImageSendMethod.FILE_API) },
                     label = { Text(stringResource(R.string.send_method_file_api)) }
                 )
                 FilterChip(
-                    selected = isOpenAi || settings.imageSendMethod == ImageSendMethod.BASE64,
-                    enabled = !isOpenAi,
+                    selected = settings.imageSendMethod == ImageSendMethod.BASE64,
                     onClick = { onUpdateSendMethod(ImageSendMethod.BASE64) },
                     label = { Text(stringResource(R.string.send_method_base64)) }
                 )
