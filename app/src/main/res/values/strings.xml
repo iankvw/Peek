@@ -90,6 +90,7 @@
     <string name="chat_text_selection_title">Select Text</string>
 
     <!-- Context Menus -->
+    <string name="menu_served_model_label">Answered by</string>
     <string name="menu_copy_text">Copy</string>
     <string name="menu_select_text">Select text</string>
     <string name="menu_edit_message">Edit</string>
@@ -269,4 +270,14 @@
     <string name="error_interrupted_by_exit">Previous request was interrupted when the app closed. Tap Retry to continue.</string>
     <string name="error_unknown">An unexpected error occurred.</string>
     <string name="error_keystore_corrupted_reenter_key">Secure key storage was reset due to a device keystore error. Please re-enter your API key in Settings.</string>
+
+    <!-- Background AI Generation Service & Notifications -->
+    <string name="notif_channel_progress_name">AI Response Progress</string>
+    <string name="notif_channel_progress_desc">Ongoing status while Peek is generating an AI response in the background.</string>
+    <string name="notif_channel_complete_name">AI Response Completed</string>
+    <string name="notif_channel_complete_desc">Notifies you when an AI response finishes while the app is in the background.</string>
+    <string name="notif_ai_generating_title">Generating AI response…</string>
+    <string name="notif_ai_generating_body">Keeping connection active until the response arrives.</string>
+    <string name="notif_ai_complete_default_title">AI response ready</string>
+    <string name="notif_ai_complete_default_body">Tap to view the completed response.</string>
 </resources>

@@ -90,6 +90,7 @@
     <string name="chat_text_selection_title">텍스트 선택</string>
 
     <!-- Context Menus -->
+    <string name="menu_served_model_label">응답 모델</string>
     <string name="menu_copy_text">복사</string>
     <string name="menu_select_text">텍스트 선택</string>
     <string name="menu_edit_message">수정</string>
@@ -269,4 +270,14 @@
     <string name="error_interrupted_by_exit">앱이 종료되어 이전 요청이 중단되었습니다. 재시도를 눌러 계속할 수 있습니다.</string>
     <string name="error_unknown">알 수 없는 오류가 발생했습니다.</string>
     <string name="error_keystore_corrupted_reenter_key">기기 키저장소 오류로 인해 보안 키 저장소가 초기화되었습니다. 설정에서 API 키를 다시 입력해 주세요.</string>
+
+    <!-- Background AI Generation Service & Notifications -->
+    <string name="notif_channel_progress_name">AI 응답 생성 진행 상태</string>
+    <string name="notif_channel_progress_desc">백그라운드에서 AI 응답을 생성하는 동안 연결을 유지합니다.</string>
+    <string name="notif_channel_complete_name">AI 응답 완료 알림</string>
+    <string name="notif_channel_complete_desc">앱이 백그라운드에 있을 때 AI 응답이 완료되면 알려줍니다.</string>
+    <string name="notif_ai_generating_title">AI 응답 생성 중…</string>
+    <string name="notif_ai_generating_body">응답이 도착할 때까지 네트워크 연결을 유지하고 있습니다.</string>
+    <string name="notif_ai_complete_default_title">AI 응답이 완료되었습니다</string>
+    <string name="notif_ai_complete_default_body">탭하여 완료된 답변을 확인하세요.</string>
 </resources>

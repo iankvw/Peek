@@ -6,6 +6,7 @@ import android.content.ClipboardManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -93,12 +94,31 @@ fun MainScreen(
     }
 
     var requestedPermissionOnce by rememberSaveable { mutableStateOf(false) }
+    var requestedNotificationPermissionOnce by rememberSaveable { mutableStateOf(false) }
     var replaceTargetAttachmentId by rememberSaveable { mutableStateOf<String?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         viewModel.onCameraPermissionChanged(granted)
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { _ -> }
+
+    fun sendWithNotificationCheck() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !requestedNotificationPermissionOnce) {
+            val granted = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+            requestedNotificationPermissionOnce = true
+            if (!granted) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+        viewModel.sendMessage()
     }
 
     val multiGalleryLauncher = rememberLauncherForActivityResult(
@@ -324,7 +344,7 @@ fun MainScreen(
                                 onCaptureFailed = viewModel::onCaptureFailed
                             )
                         },
-                        onSend = viewModel::sendMessage,
+                        onSend = ::sendWithNotificationCheck,
                         modifier = Modifier.align(Alignment.BottomCenter)
                     )
                 }
@@ -361,7 +381,7 @@ fun MainScreen(
                     onInputChanged = viewModel::updateInputText,
                     onRemovePending = viewModel::removePendingAttachment,
                     onPickFromGallery = ::openGalleryPicker,
-                    onSend = viewModel::sendMessage,
+                    onSend = ::sendWithNotificationCheck,
                     onStop = viewModel::stopActiveRequest,
                     onRetryMessage = viewModel::retryAssistantMessage,
                     onTapAttachment = { attachment ->

@@ -29,11 +29,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.Stop
@@ -151,19 +149,8 @@ fun ChatPanel(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
                                         .padding(horizontal = 14.dp, vertical = 8.dp)
-                                        .widthIn(max = 200.dp)
+                                        .widthIn(max = 210.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = if (activeTarget?.isGroup == true) {
-                                            Icons.Rounded.Layers
-                                        } else {
-                                            Icons.Rounded.AutoAwesome
-                                        },
-                                        contentDescription = stringResource(R.string.cd_select_preset),
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = activeTarget?.displayName
                                             ?: stringResource(R.string.preset_none_configured),
@@ -173,6 +160,20 @@ fun ChatPanel(
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.weight(1f, fill = false)
                                     )
+                                    if (activeTarget?.isGroup == true) {
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.primaryContainer,
+                                            shape = CircleShape
+                                        ) {
+                                            Text(
+                                                text = stringResource(R.string.group_badge_label),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
+                                            )
+                                        }
+                                    }
                                     if (selectableTargets.isNotEmpty()) {
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Icon(
@@ -192,22 +193,6 @@ fun ChatPanel(
                                 selectableTargets.forEach { target ->
                                     val isSelected = target.id == activeTarget?.id
                                     DropdownMenuItem(
-                                        leadingIcon = {
-                                            Icon(
-                                                imageVector = if (target.isGroup) {
-                                                    Icons.Rounded.Layers
-                                                } else {
-                                                    Icons.Rounded.AutoAwesome
-                                                },
-                                                contentDescription = null,
-                                                tint = if (isSelected) {
-                                                    MaterialTheme.colorScheme.primary
-                                                } else {
-                                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                                },
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        },
                                         text = {
                                             when (target) {
                                                 is SelectableTarget.PresetTarget -> {

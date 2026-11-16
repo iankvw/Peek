@@ -1,5 +1,6 @@
 package com.iank.im.peek.domain.usecase
 
+import android.content.Context
 import com.iank.im.peek.R
 import com.iank.im.peek.di.ApplicationScope
 import com.iank.im.peek.domain.model.ApiError
@@ -15,6 +16,9 @@ import com.iank.im.peek.domain.model.VisionResponseResult
 import com.iank.im.peek.domain.repository.ConversationRepository
 import com.iank.im.peek.domain.repository.SettingsRepository
 import com.iank.im.peek.domain.repository.VisionAiRepository
+import com.iank.im.peek.service.AiGenerationService
+import com.iank.im.peek.ui.common.AppVisibilityTracker
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -22,6 +26,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -29,6 +34,7 @@ import kotlin.random.Random
 
 @Singleton
 class SendChatMessageUseCase @Inject constructor(
+    @param:ApplicationContext private val appContext: Context,
     private val conversationRepository: ConversationRepository,
     private val settingsRepository: SettingsRepository,
     private val visionAiRepository: VisionAiRepository,
@@ -36,6 +42,7 @@ class SendChatMessageUseCase @Inject constructor(
     private val buildApiPayloadUseCase: BuildApiPayloadUseCase,
     private val generateImageCaptionUseCase: GenerateImageCaptionUseCase,
     private val activeSendRegistry: ActiveSendRegistry,
+    private val appVisibilityTracker: AppVisibilityTracker,
     private val resources: LocalizedResourceProvider,
     @param:ApplicationScope private val applicationScope: CoroutineScope
 ) {
@@ -140,7 +147,7 @@ class SendChatMessageUseCase @Inject constructor(
         userText: String,
         pendingAttachments: List<PendingAttachment>,
         executionTarget: ExecutionTarget
-    ): String {
+    ): String = withContext(applicationScope.coroutineContext) {
         val trimmedText = userText.trim()
         val isPhotoOnlyFirstTurn = conversationId == null &&
             trimmedText.isEmpty() &&
@@ -175,19 +182,19 @@ class SendChatMessageUseCase @Inject constructor(
             executionTarget = executionTarget,
             autoTitlePhotoInquiry = isPhotoOnlyFirstTurn
         )
-        return resolvedConversationId
+        resolvedConversationId
     }
 
     suspend fun retryAssistantMessage(
         assistantMessageId: String,
         executionTarget: ExecutionTarget
-    ) {
+    ) = withContext(applicationScope.coroutineContext) {
         val firstCandidate = executionTarget.orderedCandidates.first().first
         val userMessage = conversationRepository.prepareRetryAssistantMessage(
             assistantMessageId = assistantMessageId,
             presetId = firstCandidate.id,
             modelId = firstCandidate.modelId
-        ) ?: return
+        ) ?: return@withContext
 
         launchVisionRequest(
             conversationId = userMessage.conversationId,
@@ -226,6 +233,7 @@ class SendChatMessageUseCase @Inject constructor(
 
         lateinit var launchedJob: Job
         launchedJob = applicationScope.launch {
+            AiGenerationService.startForGeneration(appContext)
             try {
                 val settings = settingsRepository.getSettings()
                 val candidates = executionTarget.orderedCandidates
@@ -294,11 +302,18 @@ class SendChatMessageUseCase @Inject constructor(
 
                             when (val finalRes = response) {
                                 is VisionResponseResult.Success -> {
+                                    val servedGroupName = (executionTarget as? ExecutionTarget.Group)?.group?.name
+                                    val servedPresetName = preset.alias.ifBlank { preset.modelId }
+                                    val servedModelName = preset.modelId
+
                                     conversationRepository.updateAssistantSuccess(
                                         messageId = assistantMessageId,
                                         textContent = finalRes.textContent,
                                         presetId = preset.id,
                                         modelId = preset.modelId,
+                                        servedGroupName = servedGroupName,
+                                        servedPresetName = servedPresetName,
+                                        servedModelName = servedModelName,
                                         providerMetadataJson = finalRes.providerMetadataJson
                                     )
                                     val userMsg = conversationRepository.getMessage(userMessageId)
@@ -311,6 +326,7 @@ class SendChatMessageUseCase @Inject constructor(
                                             userMsg.attachments.isNotEmpty() &&
                                             currentConv?.title == defaultPhotoTitle)
 
+                                    var effectiveConvTitle = currentConv?.title.orEmpty()
                                     if (shouldAutoTitle) {
                                         val fallbackTitle = sanitizeAutoTitle(finalRes.textContent, 30)
                                         if (fallbackTitle.isNotBlank()) {
@@ -318,7 +334,19 @@ class SendChatMessageUseCase @Inject constructor(
                                                 conversationId = conversationId,
                                                 title = fallbackTitle
                                             )
+                                            effectiveConvTitle = fallbackTitle
                                         }
+                                    }
+
+                                    // Post completion notification ONLY if the app is currently in background
+                                    if (!appVisibilityTracker.isAppInForeground) {
+                                        val preview = sanitizeAutoTitle(finalRes.textContent, 80)
+                                        AiGenerationService.postCompletionNotificationIfPermitted(
+                                            context = appContext,
+                                            conversationId = conversationId,
+                                            conversationTitle = effectiveConvTitle,
+                                            responsePreview = preview
+                                        )
                                     }
 
                                     if (settings.backgroundCaptionEnabled && userMsg != null && userMsg.attachments.isNotEmpty()) {
@@ -357,6 +385,9 @@ class SendChatMessageUseCase @Inject constructor(
                 )
             } finally {
                 activeSendRegistry.unregister(conversationId, assistantMessageId, launchedJob)
+                if (!activeSendRegistry.hasActiveRequests()) {
+                    AiGenerationService.stopService(appContext)
+                }
             }
         }
         activeSendRegistry.register(conversationId, assistantMessageId, launchedJob)

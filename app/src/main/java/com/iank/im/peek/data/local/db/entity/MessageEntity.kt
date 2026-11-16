@@ -31,6 +31,9 @@ data class MessageEntity(
     val errorMessage: String?,
     val presetIdUsed: String?,
     val modelIdUsed: String?,
+    val servedGroupName: String? = null,
+    val servedPresetName: String? = null,
+    val servedModelName: String? = null,
     val providerMetadataJson: String?,
     val createdAt: Long
 )

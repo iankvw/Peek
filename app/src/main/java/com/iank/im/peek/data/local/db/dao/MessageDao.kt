@@ -61,6 +61,9 @@ interface MessageDao {
             textContent = :textContent,
             presetIdUsed = :presetIdUsed,
             modelIdUsed = :modelIdUsed,
+            servedGroupName = :servedGroupName,
+            servedPresetName = :servedPresetName,
+            servedModelName = :servedModelName,
             providerMetadataJson = :providerMetadataJson
         WHERE id = :messageId
         """
@@ -73,6 +76,9 @@ interface MessageDao {
         textContent: String,
         presetIdUsed: String?,
         modelIdUsed: String?,
+        servedGroupName: String?,
+        servedPresetName: String?,
+        servedModelName: String?,
         providerMetadataJson: String?
     )
 
@@ -91,7 +97,10 @@ interface MessageDao {
             errorCode = NULL,
             errorMessage = NULL,
             presetIdUsed = :presetIdUsed,
-            modelIdUsed = :modelIdUsed
+            modelIdUsed = :modelIdUsed,
+            servedGroupName = NULL,
+            servedPresetName = NULL,
+            servedModelName = NULL
         WHERE id = :messageId
         """
     )

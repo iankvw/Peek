@@ -23,7 +23,6 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
-import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.WarningAmber
@@ -622,21 +621,10 @@ fun ApiPresetSection(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Layers,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Text(
-                    text = stringResource(R.string.settings_model_groups_header),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
+            Text(
+                text = stringResource(R.string.settings_model_groups_header),
+                style = MaterialTheme.typography.titleMedium
+            )
             TextButton(
                 onClick = { populateGroupEditor(null) },
                 enabled = presets.size >= 2
@@ -698,26 +686,10 @@ fun ApiPresetSection(
                                 onClick = { onSelectPreset(group.id) }
                             )
                             Column(modifier = Modifier.weight(1f)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(
-                                        text = group.name,
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.primaryContainer,
-                                        shape = RoundedCornerShape(8.dp)
-                                    ) {
-                                        Text(
-                                            text = stringResource(R.string.group_badge_label),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
-                                        )
-                                    }
-                                }
+                                Text(
+                                    text = group.name,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
                                 Text(
                                     text = "$modeLabel · ${memberNames.joinToString(" → ")}",
                                     style = MaterialTheme.typography.bodySmall,

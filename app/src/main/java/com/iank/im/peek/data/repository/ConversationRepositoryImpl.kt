@@ -200,6 +200,9 @@ class ConversationRepositoryImpl @Inject constructor(
         textContent: String,
         presetId: String,
         modelId: String,
+        servedGroupName: String?,
+        servedPresetName: String?,
+        servedModelName: String?,
         providerMetadataJson: String?
     ) {
         database.withTransaction {
@@ -212,6 +215,9 @@ class ConversationRepositoryImpl @Inject constructor(
                 textContent = textContent,
                 presetIdUsed = presetId,
                 modelIdUsed = modelId,
+                servedGroupName = servedGroupName,
+                servedPresetName = servedPresetName,
+                servedModelName = servedModelName,
                 providerMetadataJson = providerMetadataJson
             )
             conversationDao.updateUpdatedAt(message.conversationId, System.currentTimeMillis())
@@ -249,6 +255,9 @@ class ConversationRepositoryImpl @Inject constructor(
                     textContent = newText,
                     presetIdUsed = message.presetIdUsed,
                     modelIdUsed = message.modelIdUsed,
+                    servedGroupName = message.servedGroupName,
+                    servedPresetName = message.servedPresetName,
+                    servedModelName = message.servedModelName,
                     providerMetadataJson = null
                 )
             }
@@ -511,6 +520,9 @@ class ConversationRepositoryImpl @Inject constructor(
         errorMessage = message.errorMessage,
         presetIdUsed = message.presetIdUsed,
         modelIdUsed = message.modelIdUsed,
+        servedGroupName = message.servedGroupName,
+        servedPresetName = message.servedPresetName,
+        servedModelName = message.servedModelName,
         providerMetadataJson = message.providerMetadataJson,
         createdAt = message.createdAt,
         attachments = attachments.sortedBy { it.sortIndex }.map { it.toDomain() }

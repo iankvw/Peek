@@ -41,6 +41,9 @@ interface ConversationRepository {
         textContent: String,
         presetId: String,
         modelId: String,
+        servedGroupName: String?,
+        servedPresetName: String?,
+        servedModelName: String?,
         providerMetadataJson: String?
     )
 

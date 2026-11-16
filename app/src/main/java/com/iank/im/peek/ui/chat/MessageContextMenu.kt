@@ -22,6 +22,7 @@ import androidx.compose.material.icons.rounded.SelectAll
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -38,6 +39,7 @@ import androidx.compose.ui.window.Dialog
 import com.iank.im.peek.R
 import com.iank.im.peek.domain.model.ChatMessage
 import com.iank.im.peek.domain.model.MessageAttachment
+import com.iank.im.peek.domain.model.MessageRole
 
 @Composable
 fun MessageContextMenuDialog(
@@ -47,6 +49,23 @@ fun MessageContextMenuDialog(
     onEditMessage: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val servedModelSummary = if (message.role == MessageRole.ASSISTANT) {
+        val groupName = message.servedGroupName?.takeIf { it.isNotBlank() }
+        val presetName = message.servedPresetName?.takeIf { it.isNotBlank() }
+        val modelName = (message.servedModelName ?: message.modelIdUsed)?.takeIf { it.isNotBlank() }
+        when {
+            groupName != null && modelName != null ->
+                "$groupName · ${presetName ?: modelName} ($modelName)"
+            presetName != null && modelName != null ->
+                "$presetName ($modelName)"
+            modelName != null ->
+                modelName
+            else -> null
+        }
+    } else {
+        null
+    }
+
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -60,6 +79,30 @@ fun MessageContextMenuDialog(
                     .fillMaxWidth()
                     .padding(horizontal = 10.dp, vertical = 12.dp)
             ) {
+                if (servedModelSummary != null) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.menu_served_model_label),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = servedModelSummary,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                    )
+                }
+
                 ContextMenuActionRow(
                     icon = Icons.Rounded.ContentCopy,
                     label = stringResource(R.string.menu_copy_text),

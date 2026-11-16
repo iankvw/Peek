@@ -41,4 +41,7 @@ class ActiveSendRegistry @Inject constructor() {
 
     fun isMessageActivelySending(messageId: String): Boolean =
         activeMessageIds.contains(messageId)
+
+    fun hasActiveRequests(): Boolean =
+        jobsByConversation.isNotEmpty()
 }

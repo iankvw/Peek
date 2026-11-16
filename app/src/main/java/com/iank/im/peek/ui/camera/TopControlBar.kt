@@ -19,12 +19,10 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.FlipCameraAndroid
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -121,19 +119,8 @@ fun TopControlBar(
                             modifier = Modifier
                                 .fillMaxHeight()
                                 .padding(horizontal = 13.dp)
-                                .widthIn(max = 165.dp)
+                                .widthIn(max = 175.dp)
                         ) {
-                            Icon(
-                                imageVector = if (activeTarget?.isGroup == true) {
-                                    Icons.Rounded.Layers
-                                } else {
-                                    Icons.Rounded.AutoAwesome
-                                },
-                                contentDescription = stringResource(R.string.cd_select_preset),
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = activeTarget?.displayName
                                     ?: stringResource(R.string.preset_none_configured),
@@ -143,6 +130,20 @@ fun TopControlBar(
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f, fill = false)
                             )
+                            if (activeTarget?.isGroup == true) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    shape = CircleShape
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.group_badge_label),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
+                                    )
+                                }
+                            }
                             if (selectableTargets.isNotEmpty()) {
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Icon(
@@ -162,22 +163,6 @@ fun TopControlBar(
                         selectableTargets.forEach { target ->
                             val isSelected = target.id == activeTarget?.id
                             DropdownMenuItem(
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = if (target.isGroup) {
-                                            Icons.Rounded.Layers
-                                        } else {
-                                            Icons.Rounded.AutoAwesome
-                                        },
-                                        contentDescription = null,
-                                        tint = if (isSelected) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                        },
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                },
                                 text = {
                                     when (target) {
                                         is SelectableTarget.PresetTarget -> {

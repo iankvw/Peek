@@ -8,6 +8,7 @@ import com.iank.im.peek.R
 import com.iank.im.peek.data.local.image.InternalImageStorage
 import com.iank.im.peek.data.local.image.StageImageResult
 import com.iank.im.peek.data.local.maintenance.StartupMaintenance
+import com.iank.im.peek.di.ApplicationScope
 import com.iank.im.peek.domain.model.ApiException
 import com.iank.im.peek.domain.model.ApiPreset
 import com.iank.im.peek.domain.model.AppLanguage
@@ -35,9 +36,11 @@ import com.iank.im.peek.domain.usecase.ReprocessAttachmentResolutionUseCase
 import com.iank.im.peek.domain.usecase.SendChatMessageUseCase
 import com.iank.im.peek.domain.usecase.StageAttachmentUseCase
 import com.iank.im.peek.ui.common.AppLocaleManager
+import com.iank.im.peek.ui.common.AppVisibilityTracker
 import com.iank.im.peek.ui.common.ErrorUiMapper
 import com.iank.im.peek.ui.common.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -72,10 +75,12 @@ class MainViewModel @Inject constructor(
     private val deleteConversationUseCase: DeleteConversationUseCase,
     private val reprocessResolutionUseCase: ReprocessAttachmentResolutionUseCase,
     private val activeSendRegistry: ActiveSendRegistry,
+    private val appVisibilityTracker: AppVisibilityTracker,
     private val imageStorage: InternalImageStorage,
     private val startupMaintenance: StartupMaintenance,
     private val resources: LocalizedResourceProvider,
-    private val json: Json
+    private val json: Json,
+    @param:ApplicationScope private val applicationScope: CoroutineScope
 ) : ViewModel() {
 
     private val screenModeFlow = MutableStateFlow(restoreScreenMode())
@@ -305,6 +310,11 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             sendChatMessageUseCase.preflightNotices.collect { notice ->
                 _events.tryEmit(UiEvent.ShowSnackbar(ErrorUiMapper.toUiText(notice)))
+            }
+        }
+        viewModelScope.launch {
+            appVisibilityTracker.notificationConversationClicks.collect { conversationId ->
+                openConversationFromDrawer(conversationId)
             }
         }
         refreshStorageUsage()
@@ -647,12 +657,14 @@ class MainViewModel @Inject constructor(
 
             setScreenMode(ScreenMode.CHAT_ACTIVE)
 
-            val resolvedId = sendChatMessageUseCase.sendNewTurn(
-                conversationId = state.activeConversationId,
-                userText = textToSend,
-                pendingAttachments = pendingToCommit,
-                executionTarget = executionTarget
-            )
+            val resolvedId = withContext(applicationScope.coroutineContext) {
+                sendChatMessageUseCase.sendNewTurn(
+                    conversationId = state.activeConversationId,
+                    userText = textToSend,
+                    pendingAttachments = pendingToCommit,
+                    executionTarget = executionTarget
+                )
+            }
             newConversationTargetOverrideIdFlow.value = null
             setActiveConversationId(resolvedId)
             refreshStorageUsage()
@@ -660,7 +672,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun retryAssistantMessage(assistantMessageId: String) {
-        viewModelScope.launch {
+        applicationScope.launch {
             val requestedTargetId = uiState.value.activeTarget?.id
             val executionTarget = when (val res = sendChatMessageUseCase.prepareExecutionTarget(requestedTargetId)) {
                 is ExecutionTargetResolution.Ready -> res.target
@@ -690,7 +702,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun editMessage(messageId: String, newText: String, isUserMessage: Boolean) {
-        viewModelScope.launch {
+        applicationScope.launch {
             overlayFlow.value = OverlayState.None
             if (!isUserMessage) {
                 editMessageUseCase(messageId, newText, null)
