@@ -1,35 +1,23 @@
 package com.iank.im.peek.wear.ui.theme
 
 import androidx.compose.runtime.Composable
-import androidx.wear.compose.material3.ColorScheme
-import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material.Colors
+import androidx.wear.compose.material.MaterialTheme
 
-private val PeekWearColorScheme = ColorScheme(
+private val PeekWearColors = Colors(
     primary = PeekWearPrimary,
-    onPrimary = PeekWearOnPrimary,
-    primaryContainer = PeekWearPrimaryContainer,
-    onPrimaryContainer = PeekWearOnPrimaryContainer,
+    primaryVariant = PeekWearPrimaryContainer,
     secondary = PeekWearOnPrimaryContainer,
+    secondaryVariant = PeekWearPrimaryContainer,
+    background = PeekWearBackground,
+    surface = PeekWearSurfaceContainer,
+    error = PeekWearError,
+    onPrimary = PeekWearOnPrimary,
     onSecondary = PeekWearOnPrimary,
-    secondaryContainer = PeekWearSurfaceContainerHigh,
-    onSecondaryContainer = PeekWearOnBackground,
-    tertiary = PeekWearPrimary,
-    onTertiary = PeekWearOnPrimary,
-    tertiaryContainer = PeekWearPrimaryContainer,
-    onTertiaryContainer = PeekWearOnPrimaryContainer,
-    surfaceContainerLow = PeekWearSurface,
-    surfaceContainer = PeekWearSurfaceContainer,
-    surfaceContainerHigh = PeekWearSurfaceContainerHigh,
+    onBackground = PeekWearOnBackground,
     onSurface = PeekWearOnBackground,
     onSurfaceVariant = PeekWearOnSurfaceVariant,
-    outline = PeekWearOutlineVariant,
-    outlineVariant = PeekWearOutlineVariant,
-    background = PeekWearBackground,
-    onBackground = PeekWearOnBackground,
-    error = PeekWearError,
-    onError = PeekWearOnError,
-    errorContainer = PeekWearErrorContainer,
-    onErrorContainer = PeekWearOnErrorContainer
+    onError = PeekWearOnError
 )
 
 @Composable
@@ -37,7 +25,7 @@ fun PeekWearTheme(
     content: @Composable () -> Unit
 ) {
     MaterialTheme(
-        colorScheme = PeekWearColorScheme,
+        colors = PeekWearColors,
         content = content
     )
 }

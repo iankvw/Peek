@@ -981,11 +981,11 @@ val helper = RemoteActivityHelper(context, Executors.newSingleThreadExecutor())
 - [x] `WearPhoneBridgeClient.kt` & `WearImageCache.kt`: `MessageClient` RPC/이벤트 수신, `DataClient` 설정 구독, `ChannelClient` 이미지 수신 캐싱 (`Semaphore(2)` 썸네일 동시성 제어 + 고화질 뷰어 우선 처리)
 
 ### Phase 4: 워치 화면 구현 (`:wear`)
-- [ ] `WearHomeScreen`: 타이틀(`Peek`) -> `새 대화` -> 채팅 목록(10+1) -> `더보기` (조건부) -> `설정`
-- [ ] `WearChatScreen`: 바인딩 모델 표시(읽기 전용), 15+1 메시지 역방향 페이지네이션, 썸네일 자동 로딩, 마지막 하단 AI 면책 문구, 텍스트(기본)/음성(전환) 입력
-- [ ] `WearImageViewerScreen`: 설정 화질 기반 온디맨드 요청 및 핀치/더블탭/크라운 줌
-- [ ] `WearReportScreen`: AI 말풍선 길게 누르기 -> 사유 선택 -> 폰 동기화 및 메일 연동
-- [ ] `WearSettingsScreen`: 사진 보기 화질, 기본 API 프리셋/그룹(양방향 동기화), 기본 입력 방식, 개인정보처리방침(`RemoteActivityHelper`)
+- [x] `WearHomeScreen`: 타이틀(`Peek`) -> `새 대화` -> 채팅 목록(10+1) -> `더보기` (조건부) -> `설정`
+- [x] `WearChatScreen`: 바인딩 모델 표시(읽기 전용), 15+1 메시지 역방향 페이지네이션, 썸네일 자동 로딩, 마지막 하단 AI 면책 문구, 텍스트(기본)/음성(전환) 입력
+- [x] `WearImageViewerScreen`: 설정 화질 기반 온디맨드 요청 및 핀치/더블탭/크라운 줌
+- [x] `WearReportScreen`: AI 말풍선 길게 누르기 -> 사유 선택 -> 폰 동기화 및 메일 연동
+- [x] `WearSettingsScreen`: 사진 보기 화질, 기본 API 프리셋/그룹(양방향 동기화), 기본 입력 방식, 개인정보처리방침(`RemoteActivityHelper`)
 
 ### Phase 5: 검증 계획 (실제 Android SDK 환경에서 수행)
 - [ ] Gradle 빌드 검증 (`./gradlew :app:assembleDebug :wear:assembleDebug`) — **주의: 현재 ARM64 컨테이너(SDK/JDK 미설치)에서는 실행하지 않고, Android SDK가 구성된 빌드 머신에서 수행한다.**
