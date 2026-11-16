@@ -18,7 +18,7 @@ object BaseUrlNormalizer {
 
     fun normalize(rawInput: String?, customEnabled: Boolean): BaseUrlNormalizationResult {
         if (!customEnabled) {
-            return Valid(
+            return BaseUrlNormalizationResult.Valid(
                 normalizedBaseUrl = DEFAULT_OPENAI_BASE_URL,
                 chatCompletionsUrl = "$DEFAULT_OPENAI_BASE_URL/chat/completions",
                 modelsUrl = "$DEFAULT_OPENAI_BASE_URL/models",
@@ -27,11 +27,11 @@ object BaseUrlNormalizer {
         }
 
         val trimmed = rawInput?.trim().orEmpty()
-        if (trimmed.isBlank()) return MissingSchemeOrInvalid
+        if (trimmed.isBlank()) return BaseUrlNormalizationResult.MissingSchemeOrInvalid
 
         val lower = trimmed.lowercase()
         if (!lower.startsWith("http://") && !lower.startsWith("https://")) {
-            return MissingSchemeOrInvalid
+            return BaseUrlNormalizationResult.MissingSchemeOrInvalid
         }
 
         var cleaned = trimmed.trimEnd('/')
@@ -39,12 +39,13 @@ object BaseUrlNormalizer {
             cleaned = cleaned.dropLast("/chat/completions".length).trimEnd('/')
         }
 
-        val parsed = runCatching { URI(cleaned) }.getOrNull() ?: return MissingSchemeOrInvalid
+        val parsed = runCatching { URI(cleaned) }.getOrNull()
+            ?: return BaseUrlNormalizationResult.MissingSchemeOrInvalid
         val host = parsed.host
-        if (host.isNullOrBlank()) return MissingSchemeOrInvalid
+        if (host.isNullOrBlank()) return BaseUrlNormalizationResult.MissingSchemeOrInvalid
 
         val isHttp = parsed.scheme.equals("http", ignoreCase = true)
-        return Valid(
+        return BaseUrlNormalizationResult.Valid(
             normalizedBaseUrl = cleaned,
             chatCompletionsUrl = "$cleaned/chat/completions",
             modelsUrl = "$cleaned/models",
@@ -54,8 +55,8 @@ object BaseUrlNormalizer {
 
     fun previewEndpoint(rawInput: String?, customEnabled: Boolean): String? {
         return when (val result = normalize(rawInput, customEnabled)) {
-            is Valid -> result.chatCompletionsUrl
-            MissingSchemeOrInvalid -> null
+            is BaseUrlNormalizationResult.Valid -> result.chatCompletionsUrl
+            BaseUrlNormalizationResult.MissingSchemeOrInvalid -> null
         }
     }
 }

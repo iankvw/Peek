@@ -1,14 +1,16 @@
 package com.iank.im.peek.domain.model
 
+private const val MAX_WEBP_SIDE_PX = 16383
+
 enum class ImageResolutionPreset(val maxSidePx: Int?) {
     DEFAULT(null),
-    ORIGINAL(MAX_WEBP_DIMENSION),
+    ORIGINAL(MAX_WEBP_SIDE_PX),
     HIGH_4000(4000),
     STANDARD_2000(2000),
     SAVER_1000(1000);
 
     companion object {
-        const val MAX_WEBP_DIMENSION = 16383
+        const val MAX_WEBP_DIMENSION = MAX_WEBP_SIDE_PX
 
         fun resolveEffectivePreset(
             attachmentPreset: ImageResolutionPreset,
