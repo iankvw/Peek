@@ -20,7 +20,8 @@ object AppLocaleManager {
         return when {
             tags.isBlank() -> AppLanguage.SYSTEM
             tags.startsWith("ko", ignoreCase = true) -> AppLanguage.KO
-            else -> AppLanguage.EN_US
+            tags.startsWith("en", ignoreCase = true) -> AppLanguage.EN_US
+            else -> AppLanguage.SYSTEM
         }
     }
 }

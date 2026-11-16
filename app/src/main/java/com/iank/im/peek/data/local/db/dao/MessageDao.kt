@@ -100,7 +100,8 @@ interface MessageDao {
             modelIdUsed = :modelIdUsed,
             servedGroupName = NULL,
             servedPresetName = NULL,
-            servedModelName = NULL
+            servedModelName = NULL,
+            isReported = 0
         WHERE id = :messageId
         """
     )
@@ -113,6 +114,9 @@ interface MessageDao {
 
     @Query("UPDATE messages SET textContent = :newText WHERE id = :messageId")
     suspend fun updateMessageText(messageId: String, newText: String)
+
+    @Query("UPDATE messages SET isReported = :isReported WHERE id = :messageId")
+    suspend fun updateMessageReported(messageId: String, isReported: Boolean)
 
     @Query("SELECT id FROM messages WHERE status = 'LOADING'")
     suspend fun getLoadingMessageIds(): List<String>

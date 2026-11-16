@@ -29,5 +29,6 @@ data class ChatMessage(
     val servedModelName: String? = null,
     val providerMetadataJson: String?,
     val createdAt: Long,
-    val attachments: List<MessageAttachment> = emptyList()
+    val attachments: List<MessageAttachment> = emptyList(),
+    val isReported: Boolean = false
 )

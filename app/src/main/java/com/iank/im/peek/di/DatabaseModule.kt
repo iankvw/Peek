@@ -27,7 +27,7 @@ object DatabaseModule {
             PeekDatabase::class.java,
             PeekDatabase.DATABASE_NAME
         )
-            .fallbackToDestructiveMigration(dropAllTables = true)
+            .addMigrations(PeekDatabase.MIGRATION_3_4)
             .build()
     }
 

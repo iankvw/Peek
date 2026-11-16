@@ -102,6 +102,7 @@ class MainViewModel @Inject constructor(
     private val storageUsageBytesFlow = MutableStateFlow(0L)
     private val cameraErrorTextFlow = MutableStateFlow<UiText?>(null)
     private val connectionTestStatusFlow = MutableStateFlow<ConnectionTestUiState>(ConnectionTestUiState.Idle)
+    private val appLanguageFlow = MutableStateFlow(AppLocaleManager.currentSelectedLanguage())
 
     private var clearedPendingBackup: List<PendingAttachment> = emptyList()
 
@@ -231,7 +232,8 @@ class MainViewModel @Inject constructor(
         settingsRepository.presets,
         settingsRepository.modelGroups,
         settingsRepository.selectedPreset,
-        settingsRepository.settings
+        settingsRepository.settings,
+        appLanguageFlow
     ) { values ->
         val core = values[0] as CoreUiSlice
         val input = values[1] as InputUiSlice
@@ -241,7 +243,9 @@ class MainViewModel @Inject constructor(
         @Suppress("UNCHECKED_CAST")
         val modelGroups = values[4] as List<ModelGroup>
         val selectedPreset = values[5] as ApiPreset?
-        val settings = values[6] as AppSettings
+        val rawSettings = values[6] as AppSettings
+        val currentAppLanguage = values[7] as AppLanguage
+        val settings = rawSettings.copy(appLanguage = currentAppLanguage)
 
         val presetMap = presets.associateBy { it.id }
         val selectableTargets = buildList<SelectableTarget> {
@@ -749,6 +753,37 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun reportAssistantMessage(messageId: String, reason: String) {
+        viewModelScope.launch {
+            overlayFlow.value = OverlayState.None
+            val message = conversationRepository.getMessage(messageId) ?: return@launch
+            conversationRepository.markMessageReported(messageId, isReported = true)
+
+            val modelLabel = listOfNotNull(
+                message.servedGroupName?.takeIf { it.isNotBlank() },
+                message.servedPresetName?.takeIf { it.isNotBlank() },
+                (message.servedModelName ?: message.modelIdUsed)?.takeIf { it.isNotBlank() }
+            ).joinToString(" / ").ifBlank { "Unknown" }
+
+            val email = resources.getString(R.string.developer_report_email)
+            val subject = resources.getString(R.string.report_email_subject)
+            val body = resources.getString(
+                R.string.report_email_body_template,
+                reason,
+                modelLabel,
+                message.id,
+                message.textContent.take(4000)
+            )
+            _events.emit(
+                UiEvent.LaunchReportEmail(
+                    email = email,
+                    subject = subject,
+                    body = body
+                )
+            )
+        }
+    }
+
     fun toggleAttachmentTextReplaced(attachmentId: String) {
         viewModelScope.launch {
             overlayFlow.value = OverlayState.None
@@ -986,11 +1021,13 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch { settingsRepository.updateCaptureResolution(resolution) }
     }
 
+    fun syncAppLanguageFromSystem() {
+        appLanguageFlow.value = AppLocaleManager.currentSelectedLanguage()
+    }
+
     fun updateAppLanguage(language: AppLanguage) {
-        viewModelScope.launch {
-            settingsRepository.updateAppLanguage(language)
-            AppLocaleManager.applyLanguage(language)
-        }
+        AppLocaleManager.applyLanguage(language)
+        appLanguageFlow.value = AppLocaleManager.currentSelectedLanguage()
     }
 
     fun updateSystemPrompt(prompt: String) {

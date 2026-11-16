@@ -15,6 +15,8 @@ sealed interface OverlayState {
         val isUserMessage: Boolean
     ) : OverlayState
 
+    data class ReportMessage(val messageId: String) : OverlayState
+
     data class ResolutionPicker(
         val attachmentId: String,
         val currentEffectivePreset: ImageResolutionPreset

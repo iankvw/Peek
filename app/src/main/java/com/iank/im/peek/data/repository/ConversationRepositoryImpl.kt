@@ -296,6 +296,10 @@ class ConversationRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun markMessageReported(messageId: String, isReported: Boolean) {
+        messageDao.updateMessageReported(messageId, isReported)
+    }
+
     override suspend fun truncateAfterAndReplaceUserMessage(
         messageId: String,
         newText: String,
@@ -557,7 +561,8 @@ class ConversationRepositoryImpl @Inject constructor(
         servedModelName = message.servedModelName,
         providerMetadataJson = message.providerMetadataJson,
         createdAt = message.createdAt,
-        attachments = attachments.sortedBy { it.sortIndex }.map { it.toDomain() }
+        attachments = attachments.sortedBy { it.sortIndex }.map { it.toDomain() },
+        isReported = message.isReported
     )
 
     private fun MessageAttachmentEntity.toDomain(): MessageAttachment = MessageAttachment(

@@ -280,4 +280,24 @@
     <string name="notif_ai_generating_body">Keeping connection active until the response arrives.</string>
     <string name="notif_ai_complete_default_title">AI response ready</string>
     <string name="notif_ai_complete_default_body">Tap to view the completed response.</string>
+
+    <!-- Play Store Compliance: Report, Disclaimer, Privacy & Trademarks -->
+    <string name="developer_report_email">support@iank.im</string>
+    <string name="privacy_policy_url">https://iank.im/peek/privacy</string>
+    <string name="menu_report_response">Report response</string>
+    <string name="report_dialog_title">Report AI response</string>
+    <string name="report_dialog_subtitle">Select a reason to report this response and hide it on your device.</string>
+    <string name="report_reason_harmful">Harmful or dangerous content</string>
+    <string name="report_reason_hate">Hate speech or discrimination</string>
+    <string name="report_reason_inaccurate">Inaccurate or misleading information</string>
+    <string name="report_reason_other">Other</string>
+    <string name="report_detail_label">Additional details (optional)</string>
+    <string name="action_report">Report</string>
+    <string name="chat_reported_message_hidden">Reported response hidden. Tap to view.</string>
+    <string name="report_email_subject">[Peek Report] AI Response Report</string>
+    <string name="report_email_body_template">Reason: %1$s\nModel: %2$s\nMessage ID: %3$s\n\n--- Reported Response ---\n%4$s</string>
+    <string name="report_no_email_app_copied">No email app found. Report details copied to clipboard.</string>
+    <string name="chat_ai_disclaimer">Responses from connected AI providers may be inaccurate.</string>
+    <string name="settings_privacy_policy">Privacy Policy</string>
+    <string name="settings_trademark_notice">Peek is an independent client app and is not affiliated with, endorsed, or sponsored by Google, OpenAI, or any other AI providers. Gemini, OpenAI, and all related names are trademarks of their respective owners.</string>
 </resources>

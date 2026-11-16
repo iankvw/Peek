@@ -3,6 +3,8 @@ package com.iank.im.peek.data.local.db
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.iank.im.peek.data.local.db.converter.RoomConverters
 import com.iank.im.peek.data.local.db.dao.ApiPresetDao
 import com.iank.im.peek.data.local.db.dao.ConversationDao
@@ -27,7 +29,7 @@ import com.iank.im.peek.data.local.db.entity.RemoteFileCacheEntity
         PendingFileDeletionEntity::class,
         PendingRemoteDeletionEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(RoomConverters::class)
@@ -40,5 +42,11 @@ abstract class PeekDatabase : RoomDatabase() {
 
     companion object {
         const val DATABASE_NAME = "peek_database"
+
+        val MIGRATION_3_4: Migration = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE messages ADD COLUMN isReported INTEGER NOT NULL DEFAULT 0")
+            }
+        }
     }
 }

@@ -69,6 +69,7 @@ import com.iank.im.peek.ui.chat.ChatPanel
 import com.iank.im.peek.ui.chat.EditMessageDialog
 import com.iank.im.peek.ui.chat.FullScreenImageViewerDialog
 import com.iank.im.peek.ui.chat.MessageContextMenuDialog
+import com.iank.im.peek.ui.chat.ReportResponseDialog
 import com.iank.im.peek.ui.chat.ResolutionConfirmScopeDialog
 import com.iank.im.peek.ui.chat.ResolutionPickerDialog
 import com.iank.im.peek.ui.chat.TextSelectionDialog
@@ -169,6 +170,7 @@ fun MainScreen(
 
     DisposableEffect(lifecycleOwner) {
         checkAndSyncCameraPermission()
+        viewModel.syncAppLanguageFromSystem()
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 val granted = ContextCompat.checkSelfPermission(
@@ -176,6 +178,7 @@ fun MainScreen(
                     Manifest.permission.CAMERA
                 ) == PackageManager.PERMISSION_GRANTED
                 viewModel.onCameraPermissionChanged(granted)
+                viewModel.syncAppLanguageFromSystem()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -232,6 +235,28 @@ fun MainScreen(
                     clipboardManager?.setPrimaryClip(
                         ClipData.newUri(context.contentResolver, "peek_image", uri)
                     )
+                }
+                is UiEvent.LaunchReportEmail -> {
+                    val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                        data = Uri.parse("mailto:")
+                        putExtra(Intent.EXTRA_EMAIL, arrayOf(event.email))
+                        putExtra(Intent.EXTRA_SUBJECT, event.subject)
+                        putExtra(Intent.EXTRA_TEXT, event.body)
+                    }
+                    val launched = runCatching {
+                        context.startActivity(emailIntent)
+                    }.isSuccess
+                    if (!launched) {
+                        clipboardManager?.setPrimaryClip(
+                            ClipData.newPlainText("peek_report", "${event.subject}\n\n${event.body}")
+                        )
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = context.getString(R.string.report_no_email_app_copied),
+                                duration = SnackbarDuration.Short
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -510,11 +535,25 @@ fun MainScreen(
                             )
                         )
                     },
+                    onReportMessage = if (targetMessage.role == com.iank.im.peek.domain.model.MessageRole.ASSISTANT) {
+                        { viewModel.setOverlay(OverlayState.ReportMessage(targetMessage.id)) }
+                    } else {
+                        null
+                    },
                     onDismiss = viewModel::dismissOverlay
                 )
             } else {
                 LaunchedEffect(overlay) { viewModel.dismissOverlay() }
             }
+        }
+
+        is OverlayState.ReportMessage -> {
+            ReportResponseDialog(
+                onConfirm = { reason ->
+                    viewModel.reportAssistantMessage(overlay.messageId, reason)
+                },
+                onDismiss = viewModel::dismissOverlay
+            )
         }
 
         is OverlayState.AttachmentMenu -> {

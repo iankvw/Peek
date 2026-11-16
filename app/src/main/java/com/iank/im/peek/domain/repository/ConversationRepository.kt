@@ -50,6 +50,7 @@ interface ConversationRepository {
     suspend fun updateAssistantError(messageId: String, error: ApiError)
     suspend fun updateAssistantCancelled(messageId: String)
     suspend fun updateMessageText(messageId: String, newText: String)
+    suspend fun markMessageReported(messageId: String, isReported: Boolean)
 
     suspend fun truncateAfterAndReplaceUserMessage(
         messageId: String,

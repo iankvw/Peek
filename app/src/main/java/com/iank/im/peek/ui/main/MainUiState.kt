@@ -69,4 +69,9 @@ sealed interface UiEvent {
     data object HideKeyboardAndClearFocus : UiEvent
     data object CloseDrawer : UiEvent
     data class CopyImageUriToClipboard(val uriString: String) : UiEvent
+    data class LaunchReportEmail(
+        val email: String,
+        val subject: String,
+        val body: String
+    ) : UiEvent
 }

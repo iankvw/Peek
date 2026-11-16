@@ -1,5 +1,6 @@
 package com.iank.im.peek.data.local.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -35,5 +36,7 @@ data class MessageEntity(
     val servedPresetName: String? = null,
     val servedModelName: String? = null,
     val providerMetadataJson: String?,
-    val createdAt: Long
+    val createdAt: Long,
+    @ColumnInfo(defaultValue = "0")
+    val isReported: Boolean = false
 )

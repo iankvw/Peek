@@ -280,4 +280,24 @@
     <string name="notif_ai_generating_body">응답이 도착할 때까지 네트워크 연결을 유지하고 있습니다.</string>
     <string name="notif_ai_complete_default_title">AI 응답이 완료되었습니다</string>
     <string name="notif_ai_complete_default_body">탭하여 완료된 답변을 확인하세요.</string>
+
+    <!-- Play Store Compliance: Report, Disclaimer, Privacy & Trademarks -->
+    <string name="developer_report_email">support@iank.im</string>
+    <string name="privacy_policy_url">https://iank.im/peek/privacy</string>
+    <string name="menu_report_response">응답 신고</string>
+    <string name="report_dialog_title">AI 응답 신고</string>
+    <string name="report_dialog_subtitle">이 응답을 신고하고 화면에서 숨길 사유를 선택해 주세요.</string>
+    <string name="report_reason_harmful">유해하거나 위험한 콘텐츠</string>
+    <string name="report_reason_hate">혐오 또는 차별적 표현</string>
+    <string name="report_reason_inaccurate">부정확한 정보</string>
+    <string name="report_reason_other">기타</string>
+    <string name="report_detail_label">상세 내용 (선택)</string>
+    <string name="action_report">신고하기</string>
+    <string name="chat_reported_message_hidden">신고된 응답입니다. 탭하여 보기</string>
+    <string name="report_email_subject">[Peek Report] AI 응답 신고</string>
+    <string name="report_email_body_template">신고 사유: %1$s\n모델 정보: %2$s\n메시지 ID: %3$s\n\n--- 신고된 응답 원문 ---\n%4$s</string>
+    <string name="report_no_email_app_copied">이메일 앱을 찾을 수 없어 신고 내용을 클립보드에 복사했습니다.</string>
+    <string name="chat_ai_disclaimer">연결된 AI 제공자 및 모델에 따라 부정확한 응답이 생성될 수 있습니다.</string>
+    <string name="settings_privacy_policy">개인정보처리방침</string>
+    <string name="settings_trademark_notice">Peek는 독립적인 클라이언트 앱으로 Google, OpenAI 등 언급된 어떠한 AI 제공자와도 제휴 또는 보증 관계가 없습니다. Gemini, OpenAI 및 모든 제품명은 각 소유자의 등록 상표입니다.</string>
 </resources>
