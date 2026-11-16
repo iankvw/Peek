@@ -1,9 +1,6 @@
 package com.iank.im.peek.ui.chat
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +12,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -51,14 +47,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -103,211 +96,151 @@ fun ChatPanel(
 ) {
     val reversedMessages = remember(messages) { messages.asReversed() }
     var isPresetMenuOpen by remember { mutableStateOf(false) }
-    var dragDistanceY by remember { mutableFloatStateOf(0f) }
 
     Surface(
         color = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Top bar with sheet drag handle + preset selector chip + new conversation button
+            // Top bar with preset selector chip + compact new conversation icon button
             Surface(
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 0.dp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .pointerInput(Unit) {
-                        detectVerticalDragGestures(
-                            onDragStart = { dragDistanceY = 0f },
-                            onVerticalDrag = { _, dragAmount ->
-                                dragDistanceY += dragAmount
-                            },
-                            onDragEnd = {
-                                if (dragDistanceY > 72f) {
-                                    onReturnToCamera()
-                                }
-                                dragDistanceY = 0f
-                            }
-                        )
-                    }
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier
                         .fillMaxWidth()
                         .statusBarsPadding()
+                        .padding(horizontal = 8.dp, vertical = 6.dp)
                 ) {
-                    // Drag handle pill for returning to viewfinder
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onReturnToCamera)
-                            .padding(top = 8.dp, bottom = 2.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(width = 36.dp, height = 4.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                                )
-                        )
-                    }
-
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            IconButton(onClick = onOpenDrawer) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Menu,
-                                    contentDescription = stringResource(R.string.cd_open_drawer)
-                                )
-                            }
-
-                            Box {
-                                Surface(
-                                    onClick = {
-                                        if (presets.isEmpty()) {
-                                            onOpenSettings()
-                                        } else {
-                                            isPresetMenuOpen = !isPresetMenuOpen
-                                        }
-                                    },
-                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    shape = RoundedCornerShape(22.dp),
-                                    border = BorderStroke(
-                                        1.dp,
-                                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-                                    )
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier
-                                            .padding(horizontal = 14.dp, vertical = 8.dp)
-                                            .widthIn(max = 200.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.AutoAwesome,
-                                            contentDescription = stringResource(R.string.cd_select_preset),
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = selectedPreset?.alias?.ifBlank { selectedPreset.modelId }
-                                                ?: stringResource(R.string.preset_none_configured),
-                                            style = MaterialTheme.typography.labelLarge,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.weight(1f, fill = false)
-                                        )
-                                        if (presets.isNotEmpty()) {
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Icon(
-                                                imageVector = Icons.Rounded.KeyboardArrowDown,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        }
-                                    }
-                                }
-
-                                DropdownMenu(
-                                    expanded = isPresetMenuOpen && presets.isNotEmpty(),
-                                    onDismissRequest = { isPresetMenuOpen = false }
-                                ) {
-                                    presets.forEach { preset ->
-                                        val isSelected = preset.id == selectedPreset?.id
-                                        DropdownMenuItem(
-                                            text = {
-                                                Column {
-                                                    Text(
-                                                        text = preset.alias.ifBlank { preset.modelId },
-                                                        style = MaterialTheme.typography.bodyMedium
-                                                    )
-                                                    Text(
-                                                        text = "${preset.provider.name} · ${preset.modelId}",
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
-                                                }
-                                            },
-                                            trailingIcon = {
-                                                if (isSelected) {
-                                                    Icon(
-                                                        imageVector = Icons.Rounded.Check,
-                                                        contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.primary
-                                                    )
-                                                }
-                                            },
-                                            onClick = {
-                                                onSelectPreset(preset.id)
-                                                isPresetMenuOpen = false
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-
-                            conversation?.overrideResolutionPreset?.let { overridePreset ->
-                                Surface(
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Text(
-                                        text = stringResource(
-                                            R.string.chat_resolution_badge,
-                                            shortResolutionLabel(overridePreset)
-                                        ),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        maxLines = 1,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                        Surface(
-                            onClick = onNewConversation,
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            shape = RoundedCornerShape(20.dp),
-                            border = BorderStroke(
-                                1.dp,
-                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        IconButton(onClick = onOpenDrawer) {
+                            Icon(
+                                imageVector = Icons.Rounded.Menu,
+                                contentDescription = stringResource(R.string.cd_open_drawer)
                             )
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Add,
-                                    contentDescription = stringResource(R.string.cd_new_conversation),
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
+                        }
+
+                        Box {
+                            Surface(
+                                onClick = {
+                                    if (presets.isEmpty()) {
+                                        onOpenSettings()
+                                    } else {
+                                        isPresetMenuOpen = !isPresetMenuOpen
+                                    }
+                                },
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                shape = CircleShape,
+                                border = BorderStroke(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                                        .widthIn(max = 200.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.AutoAwesome,
+                                        contentDescription = stringResource(R.string.cd_select_preset),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = selectedPreset?.alias?.ifBlank { selectedPreset.modelId }
+                                            ?: stringResource(R.string.preset_none_configured),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f, fill = false)
+                                    )
+                                    if (presets.isNotEmpty()) {
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Icon(
+                                            imageVector = Icons.Rounded.KeyboardArrowDown,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            DropdownMenu(
+                                expanded = isPresetMenuOpen && presets.isNotEmpty(),
+                                onDismissRequest = { isPresetMenuOpen = false }
+                            ) {
+                                presets.forEach { preset ->
+                                    val isSelected = preset.id == selectedPreset?.id
+                                    DropdownMenuItem(
+                                        text = {
+                                            Column {
+                                                Text(
+                                                    text = preset.alias.ifBlank { preset.modelId },
+                                                    style = MaterialTheme.typography.bodyMedium
+                                                )
+                                                Text(
+                                                    text = "${preset.provider.name} · ${preset.modelId}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        },
+                                        trailingIcon = {
+                                            if (isSelected) {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.Check,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        },
+                                        onClick = {
+                                            onSelectPreset(preset.id)
+                                            isPresetMenuOpen = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        conversation?.overrideResolutionPreset?.let { overridePreset ->
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = CircleShape
+                            ) {
                                 Text(
-                                    text = stringResource(R.string.drawer_new_conversation),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    text = stringResource(
+                                        R.string.chat_resolution_badge,
+                                        shortResolutionLabel(overridePreset)
+                                    ),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    maxLines = 1,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
                             }
                         }
+                    }
+
+                    IconButton(onClick = onNewConversation) {
+                        Icon(
+                            imageVector = Icons.Rounded.Add,
+                            contentDescription = stringResource(R.string.cd_new_conversation),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
             }

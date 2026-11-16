@@ -3,11 +3,14 @@ package com.iank.im.peek.ui.settings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -23,12 +26,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.iank.im.peek.R
@@ -94,11 +99,18 @@ fun SettingsBottomSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState
+        sheetState = sheetState,
+        dragHandle = null,
+        shape = RectangleShape,
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp,
+        contentWindowInsets = { WindowInsets(0) },
+        modifier = Modifier.fillMaxSize()
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
+                .statusBarsPadding()
                 .navigationBarsPadding()
                 .imePadding()
         ) {
@@ -106,7 +118,7 @@ fun SettingsBottomSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
+                    .padding(start = 20.dp, end = 8.dp, top = 8.dp, bottom = 4.dp)
             ) {
                 Text(
                     text = stringResource(R.string.settings_title),
@@ -130,6 +142,7 @@ fun SettingsBottomSheet(
 
             PrimaryScrollableTabRow(
                 selectedTabIndex = selectedTab,
+                containerColor = MaterialTheme.colorScheme.surface,
                 edgePadding = 16.dp
             ) {
                 tabs.forEachIndexed { index, titleRes ->
@@ -141,53 +154,54 @@ fun SettingsBottomSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 8.dp)
-            ) {
-                when (selectedTab) {
-                    0 -> ApiPresetSection(
-                        presets = presets,
-                        selectedPresetId = selectedPreset?.id,
-                        connectionTestStatus = connectionTestStatus,
-                        onSelectPreset = onSelectPreset,
-                        onLoadApiKey = onLoadApiKey,
-                        onSavePreset = onSavePreset,
-                        onDeletePreset = onDeletePreset,
-                        onTestConnection = onTestConnection,
-                        onResetConnectionTest = onResetConnectionTest
-                    )
-                    1 -> PayloadContextSection(
-                        settings = settings,
-                        selectedPreset = selectedPreset,
-                        storageUsageBytes = storageUsageBytes,
-                        onUpdateSendMethod = onUpdateSendMethod,
-                        onUpdateDefaultResolution = onUpdateDefaultResolution,
-                        onUpdateContextRetention = onUpdateContextRetention,
-                        onUpdateAutoReplaceOldImages = onUpdateAutoReplaceOldImages,
-                        onUpdateKeepRecentImageTurns = onUpdateKeepRecentImageTurns,
-                        onUpdateOpenAiImageDetail = onUpdateOpenAiImageDetail,
-                        onUpdateOpenAiDeveloperRole = onUpdateOpenAiDeveloperRole,
-                        onUpdateBackgroundCaption = onUpdateBackgroundCaption,
-                        onUpdateCaptionModelId = onUpdateCaptionModelId,
-                        onCleanupStorage = onCleanupStorage
-                    )
-                    2 -> CameraConfigSection(
-                        settings = settings,
-                        onUpdateDefaultLens = onUpdateDefaultLens,
-                        onUpdateCaptureResolution = onUpdateCaptureResolution,
-                        onUpdateLanguage = onUpdateLanguage
-                    )
-                    3 -> SystemPromptSection(
-                        systemPrompt = settings.systemPrompt,
-                        onUpdateSystemPrompt = onUpdateSystemPrompt
-                    )
+            key(selectedTab) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp, vertical = 14.dp)
+                ) {
+                    when (selectedTab) {
+                        0 -> ApiPresetSection(
+                            presets = presets,
+                            selectedPresetId = selectedPreset?.id,
+                            connectionTestStatus = connectionTestStatus,
+                            onSelectPreset = onSelectPreset,
+                            onLoadApiKey = onLoadApiKey,
+                            onSavePreset = onSavePreset,
+                            onDeletePreset = onDeletePreset,
+                            onTestConnection = onTestConnection,
+                            onResetConnectionTest = onResetConnectionTest
+                        )
+                        1 -> PayloadContextSection(
+                            settings = settings,
+                            selectedPreset = selectedPreset,
+                            storageUsageBytes = storageUsageBytes,
+                            onUpdateSendMethod = onUpdateSendMethod,
+                            onUpdateDefaultResolution = onUpdateDefaultResolution,
+                            onUpdateContextRetention = onUpdateContextRetention,
+                            onUpdateAutoReplaceOldImages = onUpdateAutoReplaceOldImages,
+                            onUpdateKeepRecentImageTurns = onUpdateKeepRecentImageTurns,
+                            onUpdateOpenAiImageDetail = onUpdateOpenAiImageDetail,
+                            onUpdateOpenAiDeveloperRole = onUpdateOpenAiDeveloperRole,
+                            onUpdateBackgroundCaption = onUpdateBackgroundCaption,
+                            onUpdateCaptionModelId = onUpdateCaptionModelId,
+                            onCleanupStorage = onCleanupStorage
+                        )
+                        2 -> CameraConfigSection(
+                            settings = settings,
+                            onUpdateDefaultLens = onUpdateDefaultLens,
+                            onUpdateCaptureResolution = onUpdateCaptureResolution,
+                            onUpdateLanguage = onUpdateLanguage
+                        )
+                        3 -> SystemPromptSection(
+                            systemPrompt = settings.systemPrompt,
+                            onUpdateSystemPrompt = onUpdateSystemPrompt
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
-                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }

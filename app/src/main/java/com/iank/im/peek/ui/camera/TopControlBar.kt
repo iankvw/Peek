@@ -1,19 +1,22 @@
 package com.iank.im.peek.ui.camera
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AutoAwesome
@@ -31,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -43,6 +47,8 @@ import com.iank.im.peek.domain.model.Conversation
 import com.iank.im.peek.ui.theme.CameraControlBorder
 import com.iank.im.peek.ui.theme.CameraControlContent
 import com.iank.im.peek.ui.theme.CameraControlSurface
+
+private val TOP_CONTROL_HEIGHT = 40.dp
 
 @Composable
 fun TopControlBar(
@@ -86,27 +92,32 @@ fun TopControlBar(
                     Icon(
                         imageVector = Icons.Rounded.Menu,
                         contentDescription = stringResource(R.string.cd_open_drawer),
-                        tint = CameraControlContent
+                        tint = CameraControlContent,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
 
                 Box {
                     Surface(
-                        onClick = {
-                            if (presets.isEmpty()) {
-                                onOpenSettings()
-                            } else {
-                                onTogglePresetMenu(!isPresetMenuOpen)
-                            }
-                        },
                         color = CameraControlSurface,
-                        shape = RoundedCornerShape(24.dp),
-                        border = BorderStroke(1.dp, CameraControlBorder)
+                        shape = CircleShape,
+                        border = BorderStroke(1.dp, CameraControlBorder),
+                        modifier = Modifier
+                            .height(TOP_CONTROL_HEIGHT)
+                            .clip(CircleShape)
+                            .clickable {
+                                if (presets.isEmpty()) {
+                                    onOpenSettings()
+                                } else {
+                                    onTogglePresetMenu(!isPresetMenuOpen)
+                                }
+                            }
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
-                                .padding(horizontal = 12.dp, vertical = 9.dp)
+                                .fillMaxHeight()
+                                .padding(horizontal = 13.dp)
                                 .widthIn(max = 160.dp)
                         ) {
                             Icon(
@@ -184,41 +195,48 @@ fun TopControlBar(
                     if (!activeLens.isFront) {
                         Surface(
                             color = CameraControlSurface,
-                            shape = RoundedCornerShape(22.dp),
-                            border = BorderStroke(1.dp, CameraControlBorder)
+                            shape = CircleShape,
+                            border = BorderStroke(1.dp, CameraControlBorder),
+                            modifier = Modifier.height(TOP_CONTROL_HEIGHT)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(2.dp),
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .padding(horizontal = 4.dp, vertical = 4.dp)
                             ) {
                                 CameraLensOption.rearLenses.forEach { lensOption ->
                                     val selected = activeLens == lensOption
-                                    Surface(
-                                        onClick = {
-                                            if (captureInFlight == 0 && !selected) {
-                                                onSelectLens(lensOption)
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier
+                                            .fillMaxHeight()
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (selected) {
+                                                    MaterialTheme.colorScheme.primary
+                                                } else {
+                                                    Color.Transparent
+                                                }
+                                            )
+                                            .clickable(enabled = captureInFlight == 0) {
+                                                if (!selected) {
+                                                    onSelectLens(lensOption)
+                                                }
                                             }
-                                        },
-                                        enabled = captureInFlight == 0,
-                                        color = if (selected) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            Color.Transparent
-                                        },
-                                        shape = RoundedCornerShape(16.dp)
+                                            .padding(horizontal = 10.dp)
                                     ) {
                                         Text(
                                             text = lensOption.badgeLabel,
-                                            style = MaterialTheme.typography.labelSmall.copy(
+                                            style = MaterialTheme.typography.labelMedium.copy(
                                                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
                                             ),
                                             color = if (selected) {
                                                 MaterialTheme.colorScheme.onPrimary
                                             } else {
                                                 CameraControlContent
-                                            },
-                                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp)
+                                            }
                                         )
                                     }
                                 }
@@ -234,7 +252,8 @@ fun TopControlBar(
                         Icon(
                             imageVector = Icons.Rounded.FlipCameraAndroid,
                             contentDescription = stringResource(R.string.cd_switch_camera_lens),
-                            tint = CameraControlContent
+                            tint = CameraControlContent,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -243,15 +262,20 @@ fun TopControlBar(
 
         if (activeConversation != null) {
             Surface(
-                onClick = onReturnToActiveChat,
                 color = CameraControlSurface,
-                shape = RoundedCornerShape(20.dp),
+                shape = CircleShape,
                 border = BorderStroke(1.dp, CameraControlBorder),
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .height(36.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = onReturnToActiveChat)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 6.dp)
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .padding(horizontal = 12.dp)
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
@@ -292,12 +316,13 @@ private fun TranslucentCircleButton(
     content: @Composable () -> Unit
 ) {
     Surface(
-        onClick = onClick,
-        enabled = enabled,
         color = CameraControlSurface,
         shape = CircleShape,
         border = BorderStroke(1.dp, CameraControlBorder),
-        modifier = Modifier.size(44.dp)
+        modifier = Modifier
+            .size(TOP_CONTROL_HEIGHT)
+            .clip(CircleShape)
+            .clickable(enabled = enabled, onClick = onClick)
     ) {
         Box(contentAlignment = Alignment.Center) {
             content()

@@ -1,5 +1,6 @@
 package com.iank.im.peek.ui.chat
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -154,12 +155,13 @@ fun MessageBubble(
                     detailMessage = message.errorMessage
                 ).asString()
                 Surface(
-                    color = MaterialTheme.colorScheme.errorContainer,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     shape = shape,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.7f)),
                     modifier = Modifier.widthIn(max = 320.dp)
                 ) {
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.padding(14.dp)
                     ) {
                         Row(
@@ -169,24 +171,34 @@ fun MessageBubble(
                             Icon(
                                 imageVector = Icons.Rounded.ErrorOutline,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
                                 text = errorText,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                color = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.weight(1f)
                             )
                         }
-                        FilledTonalButton(onClick = { onRetry(message.id) }) {
+                        OutlinedButton(
+                            onClick = { onRetry(message.id) },
+                            border = BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                            )
+                        ) {
                             Icon(
                                 imageVector = Icons.Rounded.Refresh,
                                 contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(text = stringResource(R.string.action_retry))
+                            Text(
+                                text = stringResource(R.string.action_retry),
+                                color = MaterialTheme.colorScheme.error
+                            )
                         }
                     }
                 }
