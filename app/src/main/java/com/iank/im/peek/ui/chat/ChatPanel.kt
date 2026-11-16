@@ -1,6 +1,7 @@
 package com.iank.im.peek.ui.chat
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,20 +38,25 @@ import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -97,17 +103,71 @@ fun ChatPanel(
 ) {
     val reversedMessages = remember(messages) { messages.asReversed() }
     var isPresetMenuOpen by remember { mutableStateOf(false) }
+    val density = LocalDensity.current
+    var topBarHeightPx by remember { mutableIntStateOf(0) }
+    var bottomBarHeightPx by remember { mutableIntStateOf(0) }
+    val topPaddingDp = with(density) { topBarHeightPx.toDp() }.coerceAtLeast(88.dp)
+    val bottomPaddingDp = with(density) { bottomBarHeightPx.toDp() }.coerceAtLeast(92.dp)
+    val bgColor = MaterialTheme.colorScheme.background
 
     Surface(
-        color = MaterialTheme.colorScheme.background,
+        color = bgColor,
         modifier = modifier.fillMaxSize()
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Top bar with preset selector chip + compact new conversation icon button
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 0.dp,
-                modifier = Modifier.fillMaxWidth()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .consumeWindowInsets(WindowInsets.navigationBars)
+                .imePadding()
+        ) {
+            // Message list fills full screen so content scrolls behind top and bottom gradient bars
+            if (messages.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.chat_empty_messages),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(horizontal = 24.dp)
+                )
+            } else {
+                LazyColumn(
+                    reverseLayout = true,
+                    contentPadding = PaddingValues(
+                        top = topPaddingDp + 8.dp,
+                        bottom = bottomPaddingDp + 8.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(reversedMessages, key = { it.id }) { msg ->
+                        MessageBubble(
+                            message = msg,
+                            resolveFile = resolveFile,
+                            onTapAttachment = onTapAttachment,
+                            onLongPressAttachment = onLongPressAttachment,
+                            onLongPressMessage = onLongPressMessage,
+                            onRetry = onRetryMessage,
+                            onStop = onStop,
+                            onCopyCode = onCopyCode
+                        )
+                    }
+                }
+            }
+
+            // Top bar with top-to-bottom vertical gradient (opaque at status bar -> transparent below)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .onSizeChanged { topBarHeightPx = it.height }
+                    .background(
+                        Brush.verticalGradient(
+                            0.0f to bgColor,
+                            0.68f to bgColor.copy(alpha = 0.86f),
+                            1.0f to Color.Transparent
+                        )
+                    )
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -115,19 +175,18 @@ fun ChatPanel(
                     modifier = Modifier
                         .fillMaxWidth()
                         .statusBarsPadding()
-                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                        .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 14.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        IconButton(onClick = onOpenDrawer) {
-                            Icon(
-                                imageVector = Icons.Rounded.Menu,
-                                contentDescription = stringResource(R.string.cd_open_drawer)
-                            )
-                        }
+                        ChatCircleIconButton(
+                            icon = Icons.Rounded.Menu,
+                            contentDescription = stringResource(R.string.cd_open_drawer),
+                            onClick = onOpenDrawer
+                        )
 
                         Box {
                             Surface(
@@ -142,13 +201,13 @@ fun ChatPanel(
                                 shape = CircleShape,
                                 border = BorderStroke(
                                     1.dp,
-                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                                 )
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
-                                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                                        .padding(horizontal = 14.dp, vertical = 9.dp)
                                         .widthIn(max = 210.dp)
                                 ) {
                                     Text(
@@ -289,71 +348,33 @@ fun ChatPanel(
                         }
                     }
 
-                    IconButton(onClick = onNewConversation) {
-                        Icon(
-                            imageVector = Icons.Rounded.Add,
-                            contentDescription = stringResource(R.string.cd_new_conversation),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    ChatCircleIconButton(
+                        icon = Icons.Rounded.Add,
+                        contentDescription = stringResource(R.string.cd_new_conversation),
+                        onClick = onNewConversation
+                    )
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-
-            // Message list (reverseLayout = true keeps latest message anchored above IME)
+            // Bottom chat composer with top-to-bottom vertical gradient (transparent -> opaque at nav bar)
             Box(
                 modifier = Modifier
-                    .weight(1f)
+                    .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .consumeWindowInsets(WindowInsets.navigationBars)
-            ) {
-                if (messages.isEmpty()) {
-                    Text(
-                        text = stringResource(R.string.chat_empty_messages),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(24.dp)
+                    .onSizeChanged { bottomBarHeightPx = it.height }
+                    .background(
+                        Brush.verticalGradient(
+                            0.0f to Color.Transparent,
+                            0.28f to bgColor.copy(alpha = 0.88f),
+                            1.0f to bgColor
+                        )
                     )
-                } else {
-                    LazyColumn(
-                        reverseLayout = true,
-                        contentPadding = PaddingValues(vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        items(reversedMessages, key = { it.id }) { msg ->
-                            MessageBubble(
-                                message = msg,
-                                resolveFile = resolveFile,
-                                onTapAttachment = onTapAttachment,
-                                onLongPressAttachment = onLongPressAttachment,
-                                onLongPressMessage = onLongPressMessage,
-                                onRetry = onRetryMessage,
-                                onStop = onStop,
-                                onCopyCode = onCopyCode
-                            )
-                        }
-                    }
-                }
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-
-            // Bottom chat composer
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 0.dp,
-                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
-                        .imePadding()
-                        .padding(top = 8.dp, bottom = 10.dp),
+                        .padding(top = 14.dp, bottom = 10.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     if (pendingAttachments.isNotEmpty()) {
@@ -366,22 +387,21 @@ fun ChatPanel(
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp)
+                            .padding(horizontal = 12.dp)
                     ) {
-                        IconButton(onClick = onPickFromGallery) {
-                            Icon(
-                                imageVector = Icons.Rounded.PhotoLibrary,
-                                contentDescription = stringResource(R.string.cd_pick_from_gallery)
-                            )
-                        }
-                        IconButton(onClick = onReturnToCamera) {
-                            Icon(
-                                imageVector = Icons.Rounded.CameraAlt,
-                                contentDescription = stringResource(R.string.cd_return_to_camera)
-                            )
-                        }
+                        ChatCircleIconButton(
+                            icon = Icons.Rounded.PhotoLibrary,
+                            contentDescription = stringResource(R.string.cd_pick_from_gallery),
+                            onClick = onPickFromGallery
+                        )
+                        ChatCircleIconButton(
+                            icon = Icons.Rounded.CameraAlt,
+                            contentDescription = stringResource(R.string.cd_return_to_camera),
+                            onClick = onReturnToCamera
+                        )
 
                         OutlinedTextField(
                             value = inputText,
@@ -392,14 +412,18 @@ fun ChatPanel(
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             },
-                            shape = RoundedCornerShape(22.dp),
+                            shape = RoundedCornerShape(24.dp),
                             maxLines = 4,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                             keyboardActions = KeyboardActions(onSend = { if (canSend) onSend() }),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                focusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                            ),
                             modifier = Modifier.weight(1f)
                         )
-
-                        Spacer(modifier = Modifier.width(6.dp))
 
                         if (isSendingInActiveConversation) {
                             Surface(
@@ -423,7 +447,7 @@ fun ChatPanel(
                                 color = if (canSend) {
                                     MaterialTheme.colorScheme.primary
                                 } else {
-                                    MaterialTheme.colorScheme.surfaceVariant
+                                    MaterialTheme.colorScheme.surfaceContainerHigh
                                 },
                                 shape = CircleShape,
                                 modifier = Modifier.size(44.dp)
@@ -445,6 +469,29 @@ fun ChatPanel(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ChatCircleIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = CircleShape,
+        modifier = Modifier.size(42.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }

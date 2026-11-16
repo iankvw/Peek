@@ -6,5 +6,6 @@ data class Conversation(
     val activeTargetId: String? = null,
     val overrideResolutionPreset: ImageResolutionPreset?,
     val createdAt: Long,
-    val updatedAt: Long
+    val updatedAt: Long,
+    val matchedSnippet: String? = null
 )

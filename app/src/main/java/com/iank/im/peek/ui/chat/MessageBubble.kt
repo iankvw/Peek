@@ -86,13 +86,6 @@ fun MessageBubble(
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 4.dp)
     ) {
-        Text(
-            text = stringResource(if (isUser) R.string.chat_role_user else R.string.chat_role_assistant),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-        )
-
         if (message.attachments.isNotEmpty()) {
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),

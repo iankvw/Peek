@@ -1,5 +1,6 @@
 package com.iank.im.peek.ui.settings
 
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,14 +28,22 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.iank.im.peek.R
 import com.iank.im.peek.domain.model.ApiPreset
@@ -85,9 +94,29 @@ fun SettingsBottomSheet(
     onUpdateLanguage: (AppLanguage) -> Unit,
     onUpdateSystemPrompt: (String) -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // Block ModalBottomSheet's internal swipe-to-dismiss so scrolling body content never closes the sheet
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { false }
+    )
     val coroutineScope = rememberCoroutineScope()
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    var headerDragY by remember { mutableFloatStateOf(0f) }
+
+    val absorbBodyOverscroll = remember {
+        object : NestedScrollConnection {
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource
+            ): Offset = available
+
+            override suspend fun onPostFling(
+                consumed: Velocity,
+                available: Velocity
+            ): Velocity = available
+        }
+    }
 
     fun animateClose() {
         if (!sheetState.isVisible) {
@@ -120,43 +149,63 @@ fun SettingsBottomSheet(
                 .navigationBarsPadding()
                 .imePadding()
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+            // Only the top header + tab row area supports downward swipe-to-close
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 20.dp, end = 8.dp, top = 8.dp, bottom = 4.dp)
+                    .pointerInput(Unit) {
+                        detectVerticalDragGestures(
+                            onDragStart = { headerDragY = 0f },
+                            onVerticalDrag = { _, dragAmount ->
+                                headerDragY += dragAmount
+                            },
+                            onDragEnd = {
+                                if (headerDragY > 64f) {
+                                    animateClose()
+                                }
+                                headerDragY = 0f
+                            }
+                        )
+                    }
             ) {
-                Text(
-                    text = stringResource(R.string.settings_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.weight(1f)
-                )
-                IconButton(onClick = ::animateClose) {
-                    Icon(
-                        imageVector = Icons.Rounded.Close,
-                        contentDescription = stringResource(R.string.action_close)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 20.dp, end = 8.dp, top = 8.dp, bottom = 4.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.weight(1f)
                     )
+                    IconButton(onClick = ::animateClose) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = stringResource(R.string.action_close)
+                        )
+                    }
                 }
-            }
 
-            val tabs = listOf(
-                R.string.settings_tab_api,
-                R.string.settings_tab_payload,
-                R.string.settings_tab_camera,
-                R.string.settings_tab_prompt
-            )
+                val tabs = listOf(
+                    R.string.settings_tab_api,
+                    R.string.settings_tab_payload,
+                    R.string.settings_tab_camera,
+                    R.string.settings_tab_prompt
+                )
 
-            PrimaryScrollableTabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = MaterialTheme.colorScheme.surface,
-                edgePadding = 16.dp
-            ) {
-                tabs.forEachIndexed { index, titleRes ->
-                    Tab(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        text = { Text(stringResource(titleRes)) }
-                    )
+                PrimaryScrollableTabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    edgePadding = 16.dp
+                ) {
+                    tabs.forEachIndexed { index, titleRes ->
+                        Tab(
+                            selected = selectedTab == index,
+                            onClick = { selectedTab = index },
+                            text = { Text(stringResource(titleRes)) }
+                        )
+                    }
                 }
             }
 
@@ -165,6 +214,7 @@ fun SettingsBottomSheet(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
+                        .nestedScroll(absorbBodyOverscroll)
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = 20.dp, vertical = 14.dp)
                 ) {

@@ -42,12 +42,37 @@ class ConversationRepositoryImpl @Inject constructor(
 
     override fun observeConversations(query: String): Flow<List<Conversation>> {
         val trimmed = query.trim()
-        val source = if (trimmed.isEmpty()) {
-            conversationDao.observeAll()
+        return if (trimmed.isEmpty()) {
+            conversationDao.observeAll().map { list -> list.map { it.toDomain() } }
         } else {
-            conversationDao.observeByQuery(trimmed)
+            conversationDao.observeByQuery(trimmed).map { rows ->
+                rows.map { row ->
+                    val titleMatches = row.conversation.title.contains(trimmed, ignoreCase = true)
+                    val rawMatch = row.matchedMessageText ?: row.matchedCaptionText
+                    val snippet = if (!titleMatches && !rawMatch.isNullOrBlank()) {
+                        extractMatchSnippet(rawMatch, trimmed)
+                    } else {
+                        null
+                    }
+                    row.conversation.toDomain(matchedSnippet = snippet)
+                }
+            }
         }
-        return source.map { list -> list.map { it.toDomain() } }
+    }
+
+    private fun extractMatchSnippet(sourceText: String, query: String): String {
+        val normalized = sourceText
+            .replace(Regex("[*_`~#>\\[\\]]"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+        if (normalized.isEmpty()) return ""
+        val idx = normalized.indexOf(query, ignoreCase = true)
+        if (idx < 0) return normalized.take(60)
+        val start = (idx - 16).coerceAtLeast(0)
+        val end = (idx + query.length + 36).coerceAtMost(normalized.length)
+        val prefix = if (start > 0) "…" else ""
+        val suffix = if (end < normalized.length) "…" else ""
+        return "$prefix${normalized.substring(start, end).trim()}$suffix"
     }
 
     override fun observeConversation(conversationId: String): Flow<Conversation?> {
@@ -499,13 +524,14 @@ class ConversationRepositoryImpl @Inject constructor(
         }
     }
 
-    private fun ConversationEntity.toDomain(): Conversation = Conversation(
+    private fun ConversationEntity.toDomain(matchedSnippet: String? = null): Conversation = Conversation(
         id = id,
         title = title,
         activeTargetId = activeTargetId,
         overrideResolutionPreset = overrideResolutionPreset,
         createdAt = createdAt,
-        updatedAt = updatedAt
+        updatedAt = updatedAt,
+        matchedSnippet = matchedSnippet
     )
 
     private fun MessageWithAttachments.toDomain(): ChatMessage = ChatMessage(

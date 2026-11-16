@@ -238,7 +238,6 @@ fun MainScreen(
         gesturesEnabled = drawerState.isOpen,
         drawerContent = {
             NavigationDrawerContent(
-                drawerState = drawerState,
                 isOpen = drawerState.isOpen,
                 conversations = uiState.conversations,
                 activeConversationId = uiState.activeConversationId,
@@ -261,6 +260,11 @@ fun MainScreen(
                         drawerState.close()
                         viewModel.setOverlay(OverlayState.Settings)
                     }
+                },
+                onCloseDrawer = {
+                    focusManager.clearFocus()
+                    keyboardController?.hide()
+                    coroutineScope.launch { drawerState.close() }
                 }
             )
         }

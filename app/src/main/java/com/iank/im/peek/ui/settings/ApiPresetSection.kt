@@ -176,93 +176,23 @@ fun ApiPresetSection(
         }
     }
 
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+    @Composable
+    fun PresetEditorCard() {
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+            ),
+            shape = RoundedCornerShape(18.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = stringResource(R.string.settings_api_presets_header),
-                style = MaterialTheme.typography.titleMedium
-            )
-            TextButton(onClick = { populateEditor(null) }) {
-                Icon(
-                    imageVector = Icons.Rounded.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(stringResource(R.string.settings_add_preset))
-            }
-        }
-
-        if (presets.isNotEmpty()) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                presets.forEach { preset ->
-                    val isSelected = preset.id == selectedPresetId
-                    Surface(
-                        color = if (isSelected) {
-                            MaterialTheme.colorScheme.secondaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-                        },
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSelectPreset(preset.id) }
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
-                        ) {
-                            RadioButton(
-                                selected = isSelected,
-                                onClick = { onSelectPreset(preset.id) }
-                            )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = preset.alias.ifBlank { preset.modelId },
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                Text(
-                                    text = "${preset.provider.name} · ${preset.modelId}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            IconButton(onClick = { populateEditor(preset) }) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Edit,
-                                    contentDescription = stringResource(R.string.settings_edit_preset)
-                                )
-                            }
-                            IconButton(onClick = { pendingDeletePreset = preset }) {
-                                Icon(
-                                    imageVector = Icons.Rounded.DeleteOutline,
-                                    contentDescription = stringResource(R.string.cd_delete_preset)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if (isCreatingNew || editingPresetId != null) {
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-                ),
-                shape = RoundedCornerShape(18.dp),
-                modifier = Modifier.fillMaxWidth()
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.padding(14.dp)
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.padding(14.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         text = stringResource(
@@ -270,6 +200,18 @@ fun ApiPresetSection(
                         ),
                         style = MaterialTheme.typography.titleSmall
                     )
+                    if (presets.isNotEmpty()) {
+                        TextButton(
+                            onClick = {
+                                editingPresetId = null
+                                isCreatingNew = false
+                                onResetConnectionTest()
+                            }
+                        ) {
+                            Text(stringResource(R.string.action_cancel))
+                        }
+                    }
+                }
 
                     OutlinedTextField(
                         value = alias,
@@ -612,6 +554,103 @@ fun ApiPresetSection(
                 }
             }
         }
+    }
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = stringResource(R.string.settings_api_presets_header),
+                style = MaterialTheme.typography.titleMedium
+            )
+            TextButton(onClick = { populateEditor(null) }) {
+                Icon(
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(stringResource(R.string.settings_add_preset))
+            }
+        }
+
+        if (presets.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                presets.forEach { preset ->
+                    val isSelected = preset.id == selectedPresetId
+                    val isEditingThis = editingPresetId == preset.id
+                    Surface(
+                        color = if (isSelected) {
+                            MaterialTheme.colorScheme.secondaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelectPreset(preset.id) }
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
+                        ) {
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = { onSelectPreset(preset.id) }
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = preset.alias.ifBlank { preset.modelId },
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    text = "${preset.provider.name} · ${preset.modelId}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            IconButton(
+                                onClick = {
+                                    if (isEditingThis) {
+                                        editingPresetId = null
+                                        isCreatingNew = false
+                                        onResetConnectionTest()
+                                    } else {
+                                        populateEditor(preset)
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Edit,
+                                    contentDescription = stringResource(R.string.settings_edit_preset)
+                                )
+                            }
+                            IconButton(onClick = { pendingDeletePreset = preset }) {
+                                Icon(
+                                    imageVector = Icons.Rounded.DeleteOutline,
+                                    contentDescription = stringResource(R.string.cd_delete_preset)
+                                )
+                            }
+                        }
+                    }
+
+                    // Inline edit form rendered directly below the selected preset card
+                    if (isEditingThis) {
+                        PresetEditorCard()
+                    }
+                }
+            }
+        }
+
+        if (isCreatingNew && editingPresetId == null) {
+            PresetEditorCard()
+        }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
@@ -811,8 +850,16 @@ fun ApiPresetSection(
                         style = MaterialTheme.typography.labelLarge
                     )
 
+                    val sortedPresetsForGroup = remember(presets, groupMemberIds) {
+                        val byId = presets.associateBy { it.id }
+                        val selectedOrdered = groupMemberIds.mapNotNull { byId[it] }
+                        val selectedSet = groupMemberIds.toSet()
+                        val unselected = presets.filterNot { it.id in selectedSet }
+                        selectedOrdered + unselected
+                    }
+
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        presets.forEach { preset ->
+                        sortedPresetsForGroup.forEach { preset ->
                             val isChecked = preset.id in groupMemberIds
                             val orderIndex = groupMemberIds.indexOf(preset.id)
                             Surface(
