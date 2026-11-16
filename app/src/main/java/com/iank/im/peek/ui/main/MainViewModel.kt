@@ -39,6 +39,7 @@ import com.iank.im.peek.ui.common.AppLocaleManager
 import com.iank.im.peek.ui.common.AppVisibilityTracker
 import com.iank.im.peek.ui.common.ErrorUiMapper
 import com.iank.im.peek.ui.common.UiText
+import com.iank.im.peek.wearbridge.WearStateSyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -83,6 +84,7 @@ class MainViewModel @Inject constructor(
     private val imageStorage: InternalImageStorage,
     private val startupMaintenance: StartupMaintenance,
     private val resources: LocalizedResourceProvider,
+    private val wearStateSyncManager: WearStateSyncManager,
     private val json: Json,
     @param:ApplicationScope private val applicationScope: CoroutineScope
 ) : ViewModel() {
@@ -758,6 +760,7 @@ class MainViewModel @Inject constructor(
             overlayFlow.value = OverlayState.None
             val message = conversationRepository.getMessage(messageId) ?: return@launch
             conversationRepository.markMessageReported(messageId, isReported = true)
+            wearStateSyncManager.notifyMessageUpdated(message.conversationId, messageId)
 
             val modelLabel = listOfNotNull(
                 message.servedGroupName?.takeIf { it.isNotBlank() },

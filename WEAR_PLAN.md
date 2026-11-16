@@ -965,15 +965,15 @@ val helper = RemoteActivityHelper(context, Executors.newSingleThreadExecutor())
 - [x] `wear/src/main/AndroidManifest.xml` 작성 (카메라 피처/권한 완전 제외, `standalone = false`)
 
 ### Phase 2: 폰 측 DB 페이지네이션 & Wearable 브릿지 구현 (`:app`)
-- [ ] `ConversationDao.kt`: `getConversationsPage(beforeUpdatedAt, beforeId, limitPlusOne)` 추가
-- [ ] `MessageDao.kt`: `getMessagesPageWithAttachments(conversationId, beforePosition, limitPlusOne)` 추가
-- [ ] `ConversationRepository.kt` & `ConversationRepositoryImpl.kt`: `PagedConversations` (`N + 1`) / `PagedMessages` (`M + 1`) 구현
-- [ ] `com.iank.im.peek.wearbridge.*` 구현:
-  - [ ] `WearProtocolModels.kt` & `WearBridgeConstants.kt`
-  - [ ] `WearStateSyncManager.kt` (`SettingsRepository` + `ActiveSendRegistry` 변경 감지 -> `DataClient` `/peek/state/config` 동기화 + 완료/오류 `/peek/event/chat_updated` 푸시)
-  - [ ] `WearImageStreamHelper.kt` (`ImagePreprocessor` 재사용 온디맨드 리사이징 + `ChannelClient` 스트리밍)
-  - [ ] `WearReportDispatcher.kt` (`markMessageReported(true)` + 메일 신고 인텐트/알림 연동)
-  - [ ] `WearBridgeListenerService.kt` 작성 및 `app/src/main/AndroidManifest.xml` 등록
+- [x] `ConversationDao.kt`: `getConversationsPage(beforeUpdatedAt, beforeId, limitPlusOne)` 추가
+- [x] `MessageDao.kt`: `getMessagesPageWithAttachments(conversationId, beforePosition, limitPlusOne)` 추가
+- [x] `ConversationRepository.kt` & `ConversationRepositoryImpl.kt`: `PagedConversations` (`N + 1`) / `PagedMessages` (`M + 1`) 구현
+- [x] `com.iank.im.peek.wearbridge.*` 구현:
+  - [x] `WearProtocolModels.kt` & `WearBridgeConstants.kt`
+  - [x] `WearStateSyncManager.kt` (`SettingsRepository` + `ActiveSendRegistry` 변경 감지 -> `DataClient` `/peek/state/config` 동기화 + 완료/오류 `/peek/event/chat_updated` 푸시)
+  - [x] `WearImageStreamHelper.kt` (`ImagePreprocessor` 재사용 온디맨드 리사이징 + `ChannelClient` 스트리밍)
+  - [x] `WearReportDispatcher.kt` (`markMessageReported(true)` + 메일 신고 인텐트/알림 연동)
+  - [x] `WearBridgeListenerService.kt` 작성 및 `app/src/main/AndroidManifest.xml` 등록
 
 ### Phase 3: 워치 테마 · 데이터 · 통신 레이어 구현 (`:wear`)
 - [ ] `ui/theme/Color.kt` & `Theme.kt`: `#000000`, `#1E1F20`, `#282A2C`, `#F5B800` 컬러 매핑

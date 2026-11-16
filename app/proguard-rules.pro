@@ -22,6 +22,8 @@
 -keep,includedescriptorclasses class com.iank.im.peek.data.remote.**$$serializer { *; }
 -keep class com.iank.im.peek.domain.model.** { *; }
 -keep,includedescriptorclasses class com.iank.im.peek.domain.model.**$$serializer { *; }
+-keep class com.iank.im.peek.wearbridge.** { *; }
+-keep,includedescriptorclasses class com.iank.im.peek.wearbridge.**$$serializer { *; }
 
 # Retrofit & OkHttp
 -dontwarn retrofit2.**

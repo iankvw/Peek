@@ -20,6 +20,7 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.util.UUID
 import javax.inject.Inject
@@ -198,6 +199,48 @@ class ImagePreprocessor @Inject constructor(
                 actualMaxSide = clampedMaxSide,
                 fileSizeBytes = writtenFile.length()
             )
+        }
+    }
+
+    suspend fun encodeFileForWearCache(
+        sourceFile: File,
+        destFile: File,
+        targetMaxSide: Int,
+        quality: Int = PAYLOAD_WEBP_QUALITY
+    ): File = withContext(processingDispatcher) {
+        processingSemaphore.withPermit {
+            if (!sourceFile.exists() || !sourceFile.isFile) {
+                throw IOException("Source image missing: ${sourceFile.absolutePath}")
+            }
+            val clampedMaxSide = targetMaxSide.coerceIn(MIN_PAYLOAD_SIDE_PX, ImageResolutionPreset.MAX_WEBP_DIMENSION)
+            val bitmap = decodeScaledBitmapSafely(sourceFile, clampedMaxSide)
+            try {
+                destFile.parentFile?.mkdirs()
+                val tempFile = File(destFile.parentFile, "${destFile.name}.${System.nanoTime()}.tmp")
+                try {
+                    FileOutputStream(tempFile).use { fos ->
+                        val compressFormat = resolveCompressFormat(ImagePayloadFormat.WEBP)
+                        if (!bitmap.compress(compressFormat, quality, fos)) {
+                            throw IOException("Failed to compress Wear cache bitmap")
+                        }
+                        fos.flush()
+                        fos.fd.sync()
+                    }
+                    if (destFile.exists() && !destFile.delete()) {
+                        throw IOException("Failed to replace Wear cache file: ${destFile.absolutePath}")
+                    }
+                    if (!tempFile.renameTo(destFile)) {
+                        throw IOException("Failed to rename Wear cache file: ${destFile.name}")
+                    }
+                    destFile
+                } finally {
+                    if (tempFile.exists()) {
+                        tempFile.delete()
+                    }
+                }
+            } finally {
+                bitmap.recycle()
+            }
         }
     }
 

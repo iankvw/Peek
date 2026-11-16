@@ -30,6 +30,22 @@ interface MessageDao {
     suspend fun getMessagesWithAttachments(conversationId: String): List<MessageWithAttachments>
 
     @Transaction
+    @Query(
+        """
+        SELECT * FROM messages
+        WHERE conversationId = :conversationId
+          AND (:beforePosition IS NULL OR position < :beforePosition)
+        ORDER BY position DESC
+        LIMIT :limitPlusOne
+        """
+    )
+    suspend fun getMessagesPageWithAttachments(
+        conversationId: String,
+        beforePosition: Int?,
+        limitPlusOne: Int
+    ): List<MessageWithAttachments>
+
+    @Transaction
     @Query("SELECT * FROM messages WHERE id = :messageId")
     suspend fun getMessageWithAttachments(messageId: String): MessageWithAttachments?
 

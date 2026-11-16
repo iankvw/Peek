@@ -280,6 +280,10 @@
     <string name="notif_ai_generating_body">Keeping connection active until the response arrives.</string>
     <string name="notif_ai_complete_default_title">AI response ready</string>
     <string name="notif_ai_complete_default_body">Tap to view the completed response.</string>
+    <string name="notif_channel_report_name">AI Response Reports</string>
+    <string name="notif_channel_report_desc">Allows completing AI response reports requested from your watch.</string>
+    <string name="notif_report_email_title">Send AI response report</string>
+    <string name="notif_report_email_body">Tap to open your email app with the report requested from your watch.</string>
 
     <!-- Play Store Compliance: Report, Disclaimer, Privacy & Trademarks -->
     <string name="developer_report_email">support@iank.im</string>

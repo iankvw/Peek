@@ -22,6 +22,8 @@ import com.iank.im.peek.domain.model.MessageAttachment
 import com.iank.im.peek.domain.model.MessageRole
 import com.iank.im.peek.domain.model.MessageStatus
 import com.iank.im.peek.domain.repository.ConversationRepository
+import com.iank.im.peek.domain.repository.PagedConversations
+import com.iank.im.peek.domain.repository.PagedMessages
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -89,6 +91,28 @@ class ConversationRepositoryImpl @Inject constructor(
         return conversationDao.getById(conversationId)?.toDomain()
     }
 
+    override suspend fun getConversationsPage(
+        beforeUpdatedAt: Long?,
+        beforeId: String?,
+        pageSize: Int
+    ): PagedConversations {
+        val safeSize = pageSize.coerceIn(1, 30)
+        val rows = conversationDao.getConversationsPage(
+            beforeUpdatedAt = beforeUpdatedAt,
+            beforeId = beforeId,
+            limitPlusOne = safeSize + 1
+        )
+        val hasMore = rows.size > safeSize
+        val sliced = rows.take(safeSize).map { it.toDomain() }
+        val last = sliced.lastOrNull()
+        return PagedConversations(
+            items = sliced,
+            hasMore = hasMore,
+            nextCursorUpdatedAt = if (hasMore) last?.updatedAt else null,
+            nextCursorId = if (hasMore) last?.id else null
+        )
+    }
+
     override fun observeMessages(conversationId: String): Flow<List<ChatMessage>> {
         return messageDao.observeMessagesWithAttachments(conversationId)
             .map { list -> list.map { it.toDomain() } }
@@ -96,6 +120,32 @@ class ConversationRepositoryImpl @Inject constructor(
 
     override suspend fun getMessages(conversationId: String): List<ChatMessage> {
         return messageDao.getMessagesWithAttachments(conversationId).map { it.toDomain() }
+    }
+
+    override suspend fun getMessagesPage(
+        conversationId: String,
+        beforePosition: Int?,
+        pageSize: Int
+    ): PagedMessages {
+        val safeSize = pageSize.coerceIn(1, 30)
+        val conversation = conversationDao.getById(conversationId)?.toDomain()
+        val rowsDesc = messageDao.getMessagesPageWithAttachments(
+            conversationId = conversationId,
+            beforePosition = beforePosition,
+            limitPlusOne = safeSize + 1
+        )
+        val hasOlder = rowsDesc.size > safeSize
+        val itemsAscending = rowsDesc
+            .take(safeSize)
+            .asReversed()
+            .map { it.toDomain() }
+        val oldestPosition = itemsAscending.firstOrNull()?.position
+        return PagedMessages(
+            conversation = conversation,
+            itemsAscending = itemsAscending,
+            hasOlder = hasOlder,
+            nextBeforePosition = if (hasOlder) oldestPosition else null
+        )
     }
 
     override suspend fun getMessage(messageId: String): ChatMessage? {

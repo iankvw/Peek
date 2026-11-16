@@ -66,6 +66,22 @@ interface ConversationDao {
     @Query("SELECT * FROM conversations WHERE id = :id")
     suspend fun getById(id: String): ConversationEntity?
 
+    @Query(
+        """
+        SELECT * FROM conversations
+        WHERE (:beforeUpdatedAt IS NULL)
+           OR (updatedAt < :beforeUpdatedAt)
+           OR (updatedAt = :beforeUpdatedAt AND id < :beforeId)
+        ORDER BY updatedAt DESC, id DESC
+        LIMIT :limitPlusOne
+        """
+    )
+    suspend fun getConversationsPage(
+        beforeUpdatedAt: Long?,
+        beforeId: String?,
+        limitPlusOne: Int
+    ): List<ConversationEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(conversation: ConversationEntity)
 

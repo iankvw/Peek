@@ -280,6 +280,10 @@
     <string name="notif_ai_generating_body">응답이 도착할 때까지 네트워크 연결을 유지하고 있습니다.</string>
     <string name="notif_ai_complete_default_title">AI 응답이 완료되었습니다</string>
     <string name="notif_ai_complete_default_body">탭하여 완료된 답변을 확인하세요.</string>
+    <string name="notif_channel_report_name">AI 응답 신고</string>
+    <string name="notif_channel_report_desc">워치에서 요청한 AI 응답 신고 메일 발송을 안내합니다.</string>
+    <string name="notif_report_email_title">AI 응답 신고 메일 보내기</string>
+    <string name="notif_report_email_body">탭하여 워치에서 요청한 응답 신고 메일을 작성하세요.</string>
 
     <!-- Play Store Compliance: Report, Disclaimer, Privacy & Trademarks -->
     <string name="developer_report_email">support@iank.im</string>

@@ -8,13 +8,37 @@ import com.iank.im.peek.domain.model.ImageResolutionPreset
 import com.iank.im.peek.domain.model.MessageAttachment
 import kotlinx.coroutines.flow.Flow
 
+data class PagedConversations(
+    val items: List<Conversation>,
+    val hasMore: Boolean,
+    val nextCursorUpdatedAt: Long?,
+    val nextCursorId: String?
+)
+
+data class PagedMessages(
+    val conversation: Conversation?,
+    val itemsAscending: List<ChatMessage>,
+    val hasOlder: Boolean,
+    val nextBeforePosition: Int?
+)
+
 interface ConversationRepository {
     fun observeConversations(query: String): Flow<List<Conversation>>
     fun observeConversation(conversationId: String): Flow<Conversation?>
     suspend fun getConversation(conversationId: String): Conversation?
+    suspend fun getConversationsPage(
+        beforeUpdatedAt: Long?,
+        beforeId: String?,
+        pageSize: Int
+    ): PagedConversations
 
     fun observeMessages(conversationId: String): Flow<List<ChatMessage>>
     suspend fun getMessages(conversationId: String): List<ChatMessage>
+    suspend fun getMessagesPage(
+        conversationId: String,
+        beforePosition: Int?,
+        pageSize: Int
+    ): PagedMessages
     suspend fun getMessage(messageId: String): ChatMessage?
     suspend fun getAttachment(attachmentId: String): MessageAttachment?
 
