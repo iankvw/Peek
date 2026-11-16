@@ -22,6 +22,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.IOException
 import java.security.GeneralSecurityException
+import java.security.KeyStore
+import java.security.ProviderException
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import javax.inject.Inject
@@ -65,6 +67,12 @@ class SecureKeyStorage @Inject constructor(
                     trimmed.toByteArray(Charsets.UTF_8),
                     presetId.toByteArray(Charsets.UTF_8)
                 )
+            } catch (_: ProviderException) {
+                val recovered = resetKeystoreAndStorageLocked()
+                recovered.encrypt(
+                    trimmed.toByteArray(Charsets.UTF_8),
+                    presetId.toByteArray(Charsets.UTF_8)
+                )
             }
             val encoded = Base64.encodeToString(encrypted, Base64.NO_WRAP)
             dataStore.edit { prefs ->
@@ -78,13 +86,22 @@ class SecureKeyStorage @Inject constructor(
             .catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
             .first()
         val encoded = prefs[keyForPreset(presetId)] ?: return@withLock null
-        val aead = getOrCreateAeadLocked()
+        val aead = try {
+            getOrCreateAeadLocked()
+        } catch (_: GeneralSecurityException) {
+            return@withLock null
+        } catch (_: ProviderException) {
+            return@withLock null
+        }
         return@withLock try {
             val cipherBytes = Base64.decode(encoded, Base64.NO_WRAP)
             val plainBytes = aead.decrypt(cipherBytes, presetId.toByteArray(Charsets.UTF_8))
             String(plainBytes, Charsets.UTF_8)
         } catch (_: GeneralSecurityException) {
-            resetKeystoreAndStorageLocked()
+            runCatching { resetKeystoreAndStorageLocked() }
+            null
+        } catch (_: ProviderException) {
+            runCatching { resetKeystoreAndStorageLocked() }
             null
         } catch (_: IllegalArgumentException) {
             dataStore.edit { it.remove(keyForPreset(presetId)) }
@@ -116,6 +133,8 @@ class SecureKeyStorage @Inject constructor(
             buildAead().also { cachedAead = it }
         } catch (_: GeneralSecurityException) {
             resetKeystoreAndStorageLocked()
+        } catch (_: ProviderException) {
+            resetKeystoreAndStorageLocked()
         } catch (_: IOException) {
             resetKeystoreAndStorageLocked()
         }
@@ -123,6 +142,12 @@ class SecureKeyStorage @Inject constructor(
 
     private suspend fun resetKeystoreAndStorageLocked(): Aead {
         cachedAead = null
+        runCatching {
+            val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE_PROVIDER).apply { load(null) }
+            if (keyStore.containsAlias(MASTER_KEY_ALIAS)) {
+                keyStore.deleteEntry(MASTER_KEY_ALIAS)
+            }
+        }
         context.getSharedPreferences(TINK_PREF_FILE, Context.MODE_PRIVATE)
             .edit()
             .clear()
@@ -146,8 +171,10 @@ class SecureKeyStorage @Inject constructor(
     private fun keyForPreset(presetId: String) = stringPreferencesKey("key_$presetId")
 
     companion object {
+        private const val ANDROID_KEYSTORE_PROVIDER = "AndroidKeyStore"
+        private const val MASTER_KEY_ALIAS = "peek_master_key"
         private const val TINK_KEYSET_NAME = "tink_keyset"
         private const val TINK_PREF_FILE = "tink_keyset_prefs"
-        private const val MASTER_KEY_URI = "android-keystore://peek_master_key"
+        private const val MASTER_KEY_URI = "android-keystore://$MASTER_KEY_ALIAS"
     }
 }

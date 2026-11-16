@@ -11,6 +11,7 @@ import com.iank.im.peek.data.remote.gemini.dto.GeminiFileMetadataWrapperDto
 import com.iank.im.peek.data.remote.gemini.dto.GeminiFileUploadStartRequest
 import com.iank.im.peek.domain.model.ApiException
 import com.iank.im.peek.domain.model.MessageAttachment
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -96,7 +97,8 @@ class GeminiFileUploader @Inject constructor(
         return try {
             val response = apiService.deleteFile(url = url, apiKey = apiKey)
             response.isSuccessful || response.code() == 404
-        } catch (_: Throwable) {
+        } catch (t: Throwable) {
+            if (t is CancellationException) throw t
             false
         }
     }
@@ -121,6 +123,7 @@ class GeminiFileUploader @Inject constructor(
                 body = startJson.toRequestBody(JSON_MEDIA_TYPE)
             )
         } catch (t: Throwable) {
+            if (t is CancellationException) throw t
             throw ApiException(errorMapper.mapThrowable(t))
         }
 
@@ -148,6 +151,7 @@ class GeminiFileUploader @Inject constructor(
                 fileBody = file.asRequestBody(mimeType.toMediaType())
             )
         } catch (t: Throwable) {
+            if (t is CancellationException) throw t
             throw ApiException(errorMapper.mapThrowable(t))
         }
 
@@ -223,7 +227,8 @@ class GeminiFileUploader @Inject constructor(
 
             val response = try {
                 apiService.getFileMetadata(url = metadataUrl, apiKey = apiKey)
-            } catch (_: Throwable) {
+            } catch (t: Throwable) {
+                if (t is CancellationException) throw t
                 continue
             }
             if (!response.isSuccessful) {

@@ -172,7 +172,9 @@ class SettingsDataStore @Inject constructor(
                 prefs[Keys.APP_SALT] = generated
             }
         }
-        return dataStore.data.first()[Keys.APP_SALT] ?: generated
+        return dataStore.data
+            .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+            .first()[Keys.APP_SALT] ?: generated
     }
 
     private fun mapPreferencesToSettings(prefs: Preferences): AppSettings {

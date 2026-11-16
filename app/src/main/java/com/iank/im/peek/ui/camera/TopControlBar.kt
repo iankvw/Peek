@@ -67,6 +67,7 @@ fun TopControlBar(
     onSelectLens: (CameraLensOption) -> Unit,
     onSwitchLens: () -> Unit,
     onReturnToActiveChat: () -> Unit,
+    onDetachConversation: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -323,39 +324,51 @@ fun TopControlBar(
                     .align(Alignment.CenterHorizontally)
                     .height(36.dp)
                     .clip(CircleShape)
-                    .clickable(onClick = onReturnToActiveChat)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .padding(horizontal = 12.dp)
+                    modifier = Modifier.fillMaxHeight()
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                        contentDescription = stringResource(R.string.cd_return_to_chat),
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(
-                            R.string.continuing_in_conversation,
-                            activeConversation.title
-                        ),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = CameraControlContent,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.widthIn(max = 220.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Icon(
-                        imageVector = Icons.Rounded.Close,
-                        contentDescription = stringResource(R.string.cd_return_to_chat),
-                        tint = CameraControlContent.copy(alpha = 0.8f),
-                        modifier = Modifier.size(15.dp)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .clickable(onClick = onReturnToActiveChat)
+                            .padding(start = 12.dp, end = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = stringResource(R.string.cd_return_to_chat),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(
+                                R.string.continuing_in_conversation,
+                                activeConversation.title
+                            ),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = CameraControlContent,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.widthIn(max = 220.dp)
+                        )
+                    }
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .clickable(onClick = onDetachConversation)
+                            .padding(start = 4.dp, end = 10.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = stringResource(R.string.cd_clear_continuing_conversation),
+                            tint = CameraControlContent.copy(alpha = 0.8f),
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
                 }
             }
         }

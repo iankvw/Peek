@@ -46,6 +46,12 @@ fun SystemPromptSection(
     val latestOnUpdate by rememberUpdatedState(onUpdateSystemPrompt)
     val latestSavedPrompt by rememberUpdatedState(systemPrompt)
 
+    LaunchedEffect(systemPrompt) {
+        if (localPrompt != systemPrompt) {
+            localPrompt = systemPrompt
+        }
+    }
+
     LaunchedEffect(Unit) {
         snapshotFlow { localPrompt }
             .drop(1)

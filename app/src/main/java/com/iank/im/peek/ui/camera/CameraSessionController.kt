@@ -263,6 +263,10 @@ class CameraSessionController(
         gatedOwner.destroy()
     }
 
+    fun unbindAllOwnUseCases() {
+        cameraProvider?.let { unbindOwnUseCases(it) }
+    }
+
     private fun unbindOwnUseCases(provider: ProcessCameraProvider) {
         clearCameraStateObserver()
         val toUnbind = listOfNotNull(boundPreview, boundImageCapture)

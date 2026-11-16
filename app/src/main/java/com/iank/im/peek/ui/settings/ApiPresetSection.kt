@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -82,7 +81,7 @@ fun ApiPresetSection(
     connectionTestStatus: ConnectionTestUiState,
     onSelectPreset: (String) -> Unit,
     onLoadApiKey: suspend (String) -> String,
-    onSavePreset: (ApiPreset, String) -> Unit,
+    onSavePreset: (ApiPreset, String?) -> Unit,
     onClonePreset: (ApiPreset, String, String) -> Unit,
     onDeletePreset: (String) -> Unit,
     onSaveModelGroup: (ModelGroup) -> Unit,
@@ -98,6 +97,8 @@ fun ApiPresetSection(
     var alias by rememberSaveable { mutableStateOf("") }
     var provider by rememberSaveable { mutableStateOf(ApiProvider.GEMINI) }
     var apiKey by remember { mutableStateOf("") }
+    var apiKeyLoadedForId by remember { mutableStateOf<String?>(null) }
+    var isApiKeyDirty by remember { mutableStateOf(false) }
     var showApiKey by remember { mutableStateOf(false) }
     var modelId by rememberSaveable { mutableStateOf("gemini-flash-latest") }
     var customUrlEnabled by rememberSaveable { mutableStateOf(false) }
@@ -116,7 +117,6 @@ fun ApiPresetSection(
     var groupMemberIds by rememberSaveable { mutableStateOf<List<String>>(emptyList()) }
 
     val coroutineScope = rememberCoroutineScope()
-    val bringIntoView = remember { BringIntoViewRequester() }
 
     fun populateGroupEditor(group: ModelGroup?) {
         if (group == null) {
@@ -147,6 +147,8 @@ fun ApiPresetSection(
             alias = ""
             provider = ApiProvider.GEMINI
             apiKey = ""
+            apiKeyLoadedForId = null
+            isApiKeyDirty = false
             showApiKey = false
             modelId = "gemini-flash-latest"
             customUrlEnabled = false
@@ -163,9 +165,20 @@ fun ApiPresetSection(
             customUrlInput = preset.customBaseUrl.orEmpty()
             payloadFormat = preset.imagePayloadFormat
             maxRequestMbText = preset.maxRequestBytes?.let { (it / (1024L * 1024L)).toString() }.orEmpty()
+            apiKey = ""
+            apiKeyLoadedForId = null
+            isApiKeyDirty = false
             showApiKey = false
-            coroutineScope.launch {
-                apiKey = onLoadApiKey(preset.id)
+        }
+    }
+
+    LaunchedEffect(editingPresetId) {
+        val editId = editingPresetId
+        if (editId != null && apiKeyLoadedForId != editId && !isApiKeyDirty) {
+            val loadedKey = onLoadApiKey(editId)
+            if (editingPresetId == editId && !isApiKeyDirty) {
+                apiKey = loadedKey
+                apiKeyLoadedForId = editId
             }
         }
     }
@@ -221,8 +234,7 @@ fun ApiPresetSection(
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .bringIntoViewRequester(bringIntoView)
-                            .onFocusEvent { if (it.isFocused) coroutineScope.launch { bringIntoView.bringIntoView() } }
+                            .then(rememberBringIntoViewModifier(coroutineScope))
                     )
 
                     Text(
@@ -257,7 +269,10 @@ fun ApiPresetSection(
 
                     OutlinedTextField(
                         value = apiKey,
-                        onValueChange = { apiKey = it },
+                        onValueChange = {
+                            apiKey = it
+                            isApiKeyDirty = true
+                        },
                         label = { Text(stringResource(R.string.settings_preset_apikey_label)) },
                         placeholder = { Text(stringResource(R.string.settings_preset_apikey_placeholder)) },
                         supportingText = if (provider == ApiProvider.OPENAI && customUrlEnabled) {
@@ -281,7 +296,9 @@ fun ApiPresetSection(
                             }
                         },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(rememberBringIntoViewModifier(coroutineScope))
                     )
 
                     OutlinedTextField(
@@ -290,7 +307,9 @@ fun ApiPresetSection(
                         label = { Text(stringResource(R.string.settings_preset_model_label)) },
                         placeholder = { Text(stringResource(R.string.settings_preset_model_placeholder)) },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(rememberBringIntoViewModifier(coroutineScope))
                     )
 
                     val urlNorm = remember(provider, customUrlEnabled, customUrlInput) {
@@ -325,7 +344,9 @@ fun ApiPresetSection(
                                 placeholder = { Text(stringResource(R.string.settings_preset_custom_url_placeholder)) },
                                 isError = urlNorm is BaseUrlNormalizationResult.MissingSchemeOrInvalid,
                                 singleLine = true,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .then(rememberBringIntoViewModifier(coroutineScope))
                             )
 
                             when (urlNorm) {
@@ -408,7 +429,9 @@ fun ApiPresetSection(
                         placeholder = { Text(stringResource(R.string.settings_preset_max_bytes_hint)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(rememberBringIntoViewModifier(coroutineScope))
                     )
 
                     fun buildCandidatePreset(): ApiPreset {
@@ -541,9 +564,16 @@ fun ApiPresetSection(
                         Button(
                             onClick = {
                                 val candidate = buildCandidatePreset()
-                                onSavePreset(candidate, apiKey.trim())
+                                val keyToSave: String? = if (editingPresetId != null && !isApiKeyDirty) {
+                                    null
+                                } else {
+                                    apiKey.trim()
+                                }
+                                onSavePreset(candidate, keyToSave)
                                 editingPresetId = null
                                 isCreatingNew = false
+                                apiKeyLoadedForId = null
+                                isApiKeyDirty = false
                             },
                             enabled = canSave,
                             modifier = Modifier.weight(1f)
@@ -777,7 +807,9 @@ fun ApiPresetSection(
                         label = { Text(stringResource(R.string.settings_group_name_label)) },
                         placeholder = { Text(stringResource(R.string.settings_group_name_placeholder)) },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(rememberBringIntoViewModifier(coroutineScope))
                     )
 
                     Text(
@@ -1063,4 +1095,16 @@ fun ApiPresetSection(
             }
         )
     }
+}
+
+@Composable
+private fun rememberBringIntoViewModifier(scope: kotlinx.coroutines.CoroutineScope): Modifier {
+    val requester = remember { BringIntoViewRequester() }
+    return Modifier
+        .bringIntoViewRequester(requester)
+        .onFocusEvent { state ->
+            if (state.isFocused) {
+                scope.launch { requester.bringIntoView() }
+            }
+        }
 }

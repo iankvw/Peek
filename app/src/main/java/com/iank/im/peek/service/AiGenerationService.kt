@@ -46,11 +46,27 @@ class AiGenerationService : Service() {
                 startForeground(PROGRESS_NOTIFICATION_ID, notification)
             }
         } catch (_: SecurityException) {
-            // Continue safely even if notification/FGS permission is restricted
+            stopSelf()
+            return START_NOT_STICKY
         } catch (_: Exception) {
+            stopSelf()
+            return START_NOT_STICKY
         }
 
         return START_NOT_STICKY
+    }
+
+    override fun onTimeout(startId: Int) {
+        handleTimeout(startId)
+    }
+
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        handleTimeout(startId)
+    }
+
+    private fun handleTimeout(startId: Int) {
+        runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
+        stopSelf(startId)
     }
 
     companion object {
@@ -77,10 +93,7 @@ class AiGenerationService : Service() {
         fun stopService(context: Context) {
             runCatching {
                 val appContext = context.applicationContext
-                val intent = Intent(appContext, AiGenerationService::class.java).apply {
-                    action = ACTION_STOP
-                }
-                appContext.startService(intent)
+                appContext.stopService(Intent(appContext, AiGenerationService::class.java))
             }
         }
 

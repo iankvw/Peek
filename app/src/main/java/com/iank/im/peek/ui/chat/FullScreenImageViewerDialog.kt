@@ -12,14 +12,18 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.WindowCompat
 import com.iank.im.peek.R
 import me.saket.telephoto.zoomable.coil3.ZoomableAsyncImage
 import java.io.File
@@ -37,6 +41,14 @@ fun FullScreenImageViewerDialog(
             dismissOnBackPress = true
         )
     ) {
+        val view = LocalView.current
+        SideEffect {
+            val window = (view.parent as? DialogWindowProvider)?.window
+            if (window != null) {
+                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+            }
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()

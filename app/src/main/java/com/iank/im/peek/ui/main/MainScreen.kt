@@ -1,6 +1,7 @@
 package com.iank.im.peek.ui.main
 
 import android.Manifest
+import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
@@ -17,6 +18,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
@@ -35,6 +37,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,9 +49,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -79,12 +84,25 @@ fun MainScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val view = LocalView.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val isDarkTheme = isSystemInDarkTheme()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val coroutineScope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val useDarkStatusBarIcons = !isDarkTheme &&
+        uiState.overlay !is OverlayState.ImageViewer &&
+        (uiState.screenMode == ScreenMode.CHAT_ACTIVE ||
+            uiState.overlay is OverlayState.Settings ||
+            drawerState.isOpen)
+    SideEffect {
+        val window = (context as? Activity)?.window ?: return@SideEffect
+        WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars =
+            useDarkStatusBarIcons
+    }
 
     val cameraController = remember(context) { CameraSessionController(context) }
     DisposableEffect(cameraController) {
@@ -185,16 +203,18 @@ fun MainScreen(
                     } else {
                         null
                     }
-                    val result = snackbarHostState.showSnackbar(
-                        message = text,
-                        actionLabel = undoLabel,
-                        duration = SnackbarDuration.Short
-                    )
-                    if (event.isUndoPendingClear) {
-                        if (result == SnackbarResult.ActionPerformed) {
-                            viewModel.undoClearPendingAttachments()
-                        } else {
-                            viewModel.finalizeClearedPendingBackup()
+                    coroutineScope.launch {
+                        val result = snackbarHostState.showSnackbar(
+                            message = text,
+                            actionLabel = undoLabel,
+                            duration = SnackbarDuration.Short
+                        )
+                        if (event.isUndoPendingClear) {
+                            if (result == SnackbarResult.ActionPerformed) {
+                                viewModel.undoClearPendingAttachments()
+                            } else {
+                                viewModel.finalizeClearedPendingBackup()
+                            }
                         }
                     }
                 }
@@ -204,7 +224,7 @@ fun MainScreen(
                 }
                 UiEvent.CloseDrawer -> {
                     if (drawerState.isOpen) {
-                        drawerState.close()
+                        coroutineScope.launch { drawerState.close() }
                     }
                 }
                 is UiEvent.CopyImageUriToClipboard -> {
@@ -327,6 +347,7 @@ fun MainScreen(
                         onSelectLens = viewModel::selectCameraLens,
                         onSwitchLens = viewModel::toggleCameraLens,
                         onReturnToActiveChat = viewModel::returnToActiveConversationFromCamera,
+                        onDetachConversation = viewModel::detachContinuingConversation,
                         modifier = Modifier.align(Alignment.TopCenter)
                     )
 
@@ -413,14 +434,16 @@ fun MainScreen(
                 )
             }
 
-            SnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .imePadding()
-                    .padding(bottom = 80.dp)
-            )
+            if (uiState.overlay !is OverlayState.Settings) {
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
+                        .imePadding()
+                        .padding(bottom = 80.dp)
+                )
+            }
         }
     }
 
@@ -438,6 +461,7 @@ fun MainScreen(
                 settings = uiState.settings,
                 storageUsageBytes = uiState.storageUsageBytes,
                 connectionTestStatus = uiState.connectionTestStatus,
+                snackbarHostState = snackbarHostState,
                 onDismiss = viewModel::dismissOverlay,
                 onSelectPreset = viewModel::selectPreset,
                 onLoadApiKey = viewModel::loadApiKeyForPreset,

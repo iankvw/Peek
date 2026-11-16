@@ -32,6 +32,7 @@ import com.iank.im.peek.domain.model.PromptPart
 import com.iank.im.peek.domain.model.PromptTurn
 import com.iank.im.peek.domain.model.VisionResponseResult
 import com.iank.im.peek.domain.repository.VisionAiRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -98,10 +99,13 @@ class VisionAiRepositoryImpl @Inject constructor(
         preset: ApiPreset,
         apiKey: String,
         attachment: MessageAttachment,
-        modelIdOverride: String?
+        modelIdOverride: String?,
+        settings: AppSettings,
+        effectiveSendMethod: ImageSendMethod
     ): String? {
         val payloadPath = attachment.payloadRelPath ?: return null
-        val captionModel = modelIdOverride?.trim()?.takeIf { it.isNotBlank() } ?: preset.modelId
+        val captionModel = (modelIdOverride?.trim()?.takeIf { it.isNotBlank() } ?: preset.modelId.trim())
+            .removePrefix("models/")
         val captionPreset = preset.copy(modelId = captionModel)
         val mimeType = preset.imagePayloadFormat.mimeType
         val singleTurn = listOf(
@@ -126,7 +130,7 @@ class VisionAiRepositoryImpl @Inject constructor(
                 apiKey = apiKey,
                 systemPrompt = "",
                 turns = singleTurn,
-                sendMethod = ImageSendMethod.FILE_API,
+                sendMethod = effectiveSendMethod,
                 forceInlineBase64Ids = emptySet()
             ).first
             ApiProvider.OPENAI -> executeOpenAiOnce(
@@ -134,7 +138,7 @@ class VisionAiRepositoryImpl @Inject constructor(
                 apiKey = apiKey,
                 systemPrompt = "",
                 turns = singleTurn,
-                settings = AppSettings()
+                settings = settings
             )
         }
         return (result as? VisionResponseResult.Success)
@@ -299,7 +303,8 @@ class VisionAiRepositoryImpl @Inject constructor(
             resolvedPartsByMessage = resolvedPartsByMessage,
             currentPresetId = preset.id
         )
-        val url = "${GeminiFileUploader.GEMINI_API_BASE_URL}/models/${preset.modelId.trim()}:generateContent"
+        val normalizedModelId = preset.modelId.trim().removePrefix("models/")
+        val url = "${GeminiFileUploader.GEMINI_API_BASE_URL}/models/$normalizedModelId:generateContent"
 
         val response = try {
             geminiApiService.generateContent(
@@ -308,6 +313,7 @@ class VisionAiRepositoryImpl @Inject constructor(
                 body = requestBody
             )
         } catch (t: Throwable) {
+            if (t is CancellationException) throw t
             return VisionResponseResult.Failure(errorMapper.mapThrowable(t)) to uploadedAttachmentIds
         }
 
@@ -531,6 +537,7 @@ class VisionAiRepositoryImpl @Inject constructor(
                 settings = settings
             )
         } catch (t: Throwable) {
+            if (t is CancellationException) throw t
             return VisionResponseResult.Failure(errorMapper.mapThrowable(t))
         }
 
@@ -543,6 +550,7 @@ class VisionAiRepositoryImpl @Inject constructor(
                 body = requestBody
             )
         } catch (t: Throwable) {
+            if (t is CancellationException) throw t
             return VisionResponseResult.Failure(errorMapper.mapThrowable(t))
         }
 
@@ -688,6 +696,7 @@ class VisionAiRepositoryImpl @Inject constructor(
                 )
             }
         } catch (t: Throwable) {
+            if (t is CancellationException) throw t
             Result.failure(ApiException(errorMapper.mapThrowable(t)))
         }
     }
@@ -737,6 +746,7 @@ class VisionAiRepositoryImpl @Inject constructor(
                 )
             }
         } catch (t: Throwable) {
+            if (t is CancellationException) throw t
             Result.failure(ApiException(errorMapper.mapThrowable(t)))
         }
     }

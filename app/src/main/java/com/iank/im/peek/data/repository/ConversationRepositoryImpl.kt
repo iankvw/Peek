@@ -45,7 +45,8 @@ class ConversationRepositoryImpl @Inject constructor(
         return if (trimmed.isEmpty()) {
             conversationDao.observeAll().map { list -> list.map { it.toDomain() } }
         } else {
-            conversationDao.observeByQuery(trimmed).map { rows ->
+            val escapedQuery = escapeSqlLikeQuery(trimmed)
+            conversationDao.observeByQuery(escapedQuery).map { rows ->
                 rows.map { row ->
                     val titleMatches = row.conversation.title.contains(trimmed, ignoreCase = true)
                     val rawMatch = row.matchedMessageText ?: row.matchedCaptionText
@@ -59,6 +60,11 @@ class ConversationRepositoryImpl @Inject constructor(
             }
         }
     }
+
+    private fun escapeSqlLikeQuery(query: String): String = query
+        .replace("\\", "\\\\")
+        .replace("%", "\\%")
+        .replace("_", "\\_")
 
     private fun extractMatchSnippet(sourceText: String, query: String): String {
         val normalized = sourceText
@@ -128,7 +134,7 @@ class ConversationRepositoryImpl @Inject constructor(
                     )
                 )
             } else {
-                if (existing.activeTargetId == null && activeTargetId != null) {
+                if (activeTargetId != null && existing.activeTargetId != activeTargetId) {
                     conversationDao.updateActiveTargetId(resolvedConversationId, activeTargetId)
                 }
                 conversationDao.updateUpdatedAt(resolvedConversationId, now)

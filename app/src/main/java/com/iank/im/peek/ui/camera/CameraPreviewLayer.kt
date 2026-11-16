@@ -33,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,7 +44,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.iank.im.peek.R
@@ -74,11 +74,12 @@ fun CameraPreviewLayer(
     var provider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
     var hostState by remember { mutableStateOf(hostLifecycleOwner.lifecycle.currentState) }
     var rebindTrigger by remember { mutableIntStateOf(0) }
+    val latestCameraShouldRun by rememberUpdatedState(cameraShouldRun)
 
     DisposableEffect(hostLifecycleOwner, controller) {
         val observer = LifecycleEventObserver { _, _ ->
             hostState = hostLifecycleOwner.lifecycle.currentState
-            controller.gatedOwner.updateGate(hostState, cameraShouldRun)
+            controller.gatedOwner.updateGate(hostState, latestCameraShouldRun)
         }
         hostLifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
@@ -90,8 +91,9 @@ fun CameraPreviewLayer(
         controller.gatedOwner.updateGate(hostState, cameraShouldRun)
     }
 
-    LaunchedEffect(hasCameraPermission) {
+    LaunchedEffect(hasCameraPermission, rebindTrigger) {
         if (hasCameraPermission && provider == null) {
+            onCameraError(null)
             runCatching { controller.acquireProvider() }
                 .onSuccess { provider = it }
                 .onFailure { err ->
@@ -106,8 +108,11 @@ fun CameraPreviewLayer(
     }
 
     LaunchedEffect(provider, hasCameraPermission, activeLens, captureResolution, rebindTrigger) {
+        if (!hasCameraPermission) {
+            controller.unbindAllOwnUseCases()
+            return@LaunchedEffect
+        }
         val currentProvider = provider ?: return@LaunchedEffect
-        if (!hasCameraPermission) return@LaunchedEffect
         controller.bindUseCases(
             provider = currentProvider,
             requestedLens = activeLens,

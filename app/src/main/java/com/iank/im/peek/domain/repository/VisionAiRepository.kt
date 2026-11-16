@@ -25,7 +25,9 @@ interface VisionAiRepository {
         preset: ApiPreset,
         apiKey: String,
         attachment: MessageAttachment,
-        modelIdOverride: String?
+        modelIdOverride: String?,
+        settings: AppSettings = AppSettings(),
+        effectiveSendMethod: ImageSendMethod = ImageSendMethod.FILE_API
     ): String?
 
     suspend fun processPendingRemoteDeletions()

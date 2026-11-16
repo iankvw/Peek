@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -136,9 +137,9 @@ fun MarkdownText(
                         Box(
                             modifier = Modifier
                                 .width(3.dp)
+                                .fillMaxHeight()
                                 .padding(vertical = 2.dp)
                                 .background(quoteBarColor, RoundedCornerShape(2.dp))
-                                .height(20.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(

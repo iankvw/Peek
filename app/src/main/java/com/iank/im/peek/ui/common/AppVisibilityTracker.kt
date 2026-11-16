@@ -3,9 +3,9 @@ package com.iank.im.peek.ui.common
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -17,16 +17,18 @@ class AppVisibilityTracker @Inject constructor() : Application.ActivityLifecycle
     val isAppInForeground: Boolean
         get() = startedCount.get() > 0
 
-    private val _notificationConversationClicks = MutableSharedFlow<String>(
-        replay = 1,
-        extraBufferCapacity = 8
-    )
-    val notificationConversationClicks: SharedFlow<String> = _notificationConversationClicks.asSharedFlow()
+    private val _pendingNotificationConversationId = MutableStateFlow<String?>(null)
+    val pendingNotificationConversationId: StateFlow<String?> =
+        _pendingNotificationConversationId.asStateFlow()
 
     fun dispatchNotificationConversationClick(conversationId: String) {
         if (conversationId.isNotBlank()) {
-            _notificationConversationClicks.tryEmit(conversationId)
+            _pendingNotificationConversationId.value = conversationId
         }
+    }
+
+    fun consumeNotificationConversationClick(conversationId: String) {
+        _pendingNotificationConversationId.compareAndSet(conversationId, null)
     }
 
     override fun onActivityStarted(activity: Activity) {

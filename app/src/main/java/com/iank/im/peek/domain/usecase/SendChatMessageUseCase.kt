@@ -8,6 +8,7 @@ import com.iank.im.peek.domain.model.ApiPreset
 import com.iank.im.peek.domain.model.ApiProvider
 import com.iank.im.peek.domain.model.ExecutionTarget
 import com.iank.im.peek.domain.model.GroupRoutingMode
+import com.iank.im.peek.domain.model.ImageSendMethod
 import com.iank.im.peek.domain.model.ModelGroup
 import com.iank.im.peek.domain.model.PendingAttachment
 import com.iank.im.peek.domain.model.PreflightNotice
@@ -21,7 +22,11 @@ import com.iank.im.peek.ui.common.AppVisibilityTracker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -232,7 +237,7 @@ class SendChatMessageUseCase @Inject constructor(
         activeSendRegistry.cancel(conversationId)
 
         lateinit var launchedJob: Job
-        launchedJob = applicationScope.launch {
+        launchedJob = applicationScope.launch(start = CoroutineStart.LAZY) {
             AiGenerationService.startForGeneration(appContext)
             try {
                 val settings = settingsRepository.getSettings()
@@ -240,6 +245,7 @@ class SendChatMessageUseCase @Inject constructor(
                 var lastError: ApiError = ApiError.Unknown()
 
                 for ((index, candidatePair) in candidates.withIndex()) {
+                    currentCoroutineContext().ensureActive()
                     val (preset, apiKey) = candidatePair
                     val firstBuild = buildApiPayloadUseCase(
                         conversationId = conversationId,
@@ -321,7 +327,7 @@ class SendChatMessageUseCase @Inject constructor(
                                     val defaultPhotoTitle = resources.getString(R.string.default_photo_conversation_title)
                                     val shouldAutoTitle = autoTitlePhotoInquiry ||
                                         (userMsg != null &&
-                                            userMsg.turnIndex == 1 &&
+                                            userMsg.turnIndex == 0 &&
                                             userMsg.textContent.isBlank() &&
                                             userMsg.attachments.isNotEmpty() &&
                                             currentConv?.title == defaultPhotoTitle)
@@ -350,6 +356,11 @@ class SendChatMessageUseCase @Inject constructor(
                                     }
 
                                     if (settings.backgroundCaptionEnabled && userMsg != null && userMsg.attachments.isNotEmpty()) {
+                                        val captionSendMethod = if (executionTarget.forceInlineBase64) {
+                                            ImageSendMethod.BASE64
+                                        } else {
+                                            preset.effectiveSendMethod(settings.imageSendMethod)
+                                        }
                                         applicationScope.launch {
                                             generateImageCaptionUseCase(
                                                 conversationId = conversationId,
@@ -357,6 +368,7 @@ class SendChatMessageUseCase @Inject constructor(
                                                 preset = preset,
                                                 apiKey = apiKey,
                                                 settings = settings,
+                                                effectiveSendMethod = captionSendMethod,
                                                 updateConversationTitleFromCaption = shouldAutoTitle
                                             )
                                         }
@@ -376,7 +388,9 @@ class SendChatMessageUseCase @Inject constructor(
                     error = lastError
                 )
             } catch (ce: CancellationException) {
-                conversationRepository.updateAssistantCancelled(assistantMessageId)
+                withContext(NonCancellable) {
+                    conversationRepository.updateAssistantCancelled(assistantMessageId)
+                }
                 throw ce
             } catch (t: Throwable) {
                 conversationRepository.updateAssistantError(
@@ -391,6 +405,7 @@ class SendChatMessageUseCase @Inject constructor(
             }
         }
         activeSendRegistry.register(conversationId, assistantMessageId, launchedJob)
+        launchedJob.start()
     }
 
     companion object {

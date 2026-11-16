@@ -2,6 +2,7 @@ package com.iank.im.peek.domain.usecase
 
 import com.iank.im.peek.domain.model.ApiPreset
 import com.iank.im.peek.domain.model.AppSettings
+import com.iank.im.peek.domain.model.ImageSendMethod
 import com.iank.im.peek.domain.model.MessageAttachment
 import com.iank.im.peek.domain.repository.ConversationRepository
 import com.iank.im.peek.domain.repository.VisionAiRepository
@@ -20,6 +21,7 @@ class GenerateImageCaptionUseCase @Inject constructor(
         preset: ApiPreset,
         apiKey: String,
         settings: AppSettings,
+        effectiveSendMethod: ImageSendMethod = ImageSendMethod.FILE_API,
         updateConversationTitleFromCaption: Boolean = false
     ) {
         if (!settings.backgroundCaptionEnabled || attachments.isEmpty()) return
@@ -40,7 +42,9 @@ class GenerateImageCaptionUseCase @Inject constructor(
                     preset = preset,
                     apiKey = apiKey,
                     attachment = ensured,
-                    modelIdOverride = modelOverride
+                    modelIdOverride = modelOverride,
+                    settings = settings,
+                    effectiveSendMethod = effectiveSendMethod
                 )
                 if (!caption.isNullOrBlank()) {
                     conversationRepository.updateAttachmentCaption(attachment.id, caption)

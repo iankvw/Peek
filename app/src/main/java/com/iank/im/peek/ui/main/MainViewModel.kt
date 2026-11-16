@@ -43,6 +43,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -50,6 +51,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
@@ -61,7 +65,7 @@ import java.io.File
 import java.util.UUID
 import javax.inject.Inject
 
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
@@ -105,6 +109,8 @@ class MainViewModel @Inject constructor(
     val events: SharedFlow<UiEvent> = _events.asSharedFlow()
 
     private val conversationsFlow = drawerSearchQueryFlow
+        .debounce { query -> if (query.isEmpty()) 0L else 150L }
+        .distinctUntilChanged()
         .flatMapLatest { query -> conversationRepository.observeConversations(query) }
 
     private val activeConversationFlow = activeConversationIdFlow
@@ -313,9 +319,17 @@ class MainViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            appVisibilityTracker.notificationConversationClicks.collect { conversationId ->
-                openConversationFromDrawer(conversationId)
-            }
+            appVisibilityTracker.pendingNotificationConversationId
+                .filterNotNull()
+                .collect { conversationId ->
+                    appVisibilityTracker.consumeNotificationConversationClick(conversationId)
+                    val exists = withContext(Dispatchers.IO) {
+                        conversationRepository.getConversation(conversationId) != null
+                    }
+                    if (exists) {
+                        openConversationFromDrawer(conversationId)
+                    }
+                }
         }
         refreshStorageUsage()
     }
@@ -678,14 +692,17 @@ class MainViewModel @Inject constructor(
                 is ExecutionTargetResolution.Ready -> res.target
                 ExecutionTargetResolution.NoPresetConfigured -> {
                     _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_no_preset)))
+                    setOverlay(OverlayState.Settings)
                     return@launch
                 }
                 ExecutionTargetResolution.MissingModelId -> {
                     _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_missing_model)))
+                    setOverlay(OverlayState.Settings)
                     return@launch
                 }
                 ExecutionTargetResolution.MissingApiKey -> {
                     _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_missing_api_key)))
+                    setOverlay(OverlayState.Settings)
                     return@launch
                 }
             }
@@ -703,8 +720,8 @@ class MainViewModel @Inject constructor(
 
     fun editMessage(messageId: String, newText: String, isUserMessage: Boolean) {
         applicationScope.launch {
-            overlayFlow.value = OverlayState.None
             if (!isUserMessage) {
+                overlayFlow.value = OverlayState.None
                 editMessageUseCase(messageId, newText, null)
                 return@launch
             }
@@ -713,17 +730,21 @@ class MainViewModel @Inject constructor(
                 is ExecutionTargetResolution.Ready -> res.target
                 ExecutionTargetResolution.NoPresetConfigured -> {
                     _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_no_preset)))
+                    setOverlay(OverlayState.Settings)
                     return@launch
                 }
                 ExecutionTargetResolution.MissingModelId -> {
                     _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_missing_model)))
+                    setOverlay(OverlayState.Settings)
                     return@launch
                 }
                 ExecutionTargetResolution.MissingApiKey -> {
                     _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_missing_api_key)))
+                    setOverlay(OverlayState.Settings)
                     return@launch
                 }
             }
+            overlayFlow.value = OverlayState.None
             editMessageUseCase(messageId, newText, executionTarget)
         }
     }
@@ -861,7 +882,7 @@ class MainViewModel @Inject constructor(
     suspend fun loadApiKeyForPreset(presetId: String): String =
         settingsRepository.getApiKey(presetId).orEmpty()
 
-    fun savePreset(preset: ApiPreset, apiKey: String) {
+    fun savePreset(preset: ApiPreset, apiKey: String?) {
         viewModelScope.launch {
             settingsRepository.upsertPreset(preset, apiKey)
             settingsRepository.selectPreset(preset.id)

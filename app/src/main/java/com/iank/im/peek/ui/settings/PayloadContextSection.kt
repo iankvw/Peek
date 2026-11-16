@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -24,13 +26,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -47,6 +52,7 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalLayoutApi::class, FlowPreview::class)
@@ -166,15 +172,22 @@ fun PayloadContextSection(
             }
 
             if (!isAll) {
+                var sliderTurns by remember(currentTurns) {
+                    mutableFloatStateOf(currentTurns.toFloat())
+                }
+                val displayTurns = sliderTurns.roundToInt().coerceIn(2, 30)
                 Text(
-                    text = stringResource(R.string.settings_sliding_turns_label, currentTurns),
+                    text = stringResource(R.string.settings_sliding_turns_label, displayTurns),
                     style = MaterialTheme.typography.bodySmall
                 )
                 Slider(
-                    value = currentTurns.toFloat(),
-                    onValueChange = { value ->
+                    value = sliderTurns,
+                    onValueChange = { sliderTurns = it },
+                    onValueChangeFinished = {
                         onUpdateContextRetention(
-                            ContextRetentionMode.SlidingWindow(value.roundToInt().coerceIn(2, 30))
+                            ContextRetentionMode.SlidingWindow(
+                                sliderTurns.roundToInt().coerceIn(2, 30)
+                            )
                         )
                     },
                     valueRange = 2f..30f,
@@ -207,17 +220,24 @@ fun PayloadContextSection(
         }
 
         if (settings.autoTextReplaceOldImages) {
+            var sliderRecentTurns by remember(settings.keepRecentImageTurns) {
+                mutableFloatStateOf(settings.keepRecentImageTurns.toFloat())
+            }
+            val displayRecentTurns = sliderRecentTurns.roundToInt().coerceIn(1, 5)
             Column {
                 Text(
                     text = stringResource(
                         R.string.settings_keep_recent_image_turns,
-                        settings.keepRecentImageTurns
+                        displayRecentTurns
                     ),
                     style = MaterialTheme.typography.bodySmall
                 )
                 Slider(
-                    value = settings.keepRecentImageTurns.toFloat(),
-                    onValueChange = { onUpdateKeepRecentImageTurns(it.roundToInt().coerceIn(1, 5)) },
+                    value = sliderRecentTurns,
+                    onValueChange = { sliderRecentTurns = it },
+                    onValueChangeFinished = {
+                        onUpdateKeepRecentImageTurns(sliderRecentTurns.roundToInt().coerceIn(1, 5))
+                    },
                     valueRange = 1f..5f,
                     steps = 3
                 )
@@ -302,6 +322,14 @@ fun PayloadContextSection(
             var localCaptionModelId by remember { mutableStateOf(settings.captionModelId) }
             val latestOnUpdateCaptionModel by rememberUpdatedState(onUpdateCaptionModelId)
             val latestSavedCaptionModel by rememberUpdatedState(settings.captionModelId)
+            val captionBringIntoView = remember { BringIntoViewRequester() }
+            val captionScope = rememberCoroutineScope()
+
+            LaunchedEffect(settings.captionModelId) {
+                if (localCaptionModelId != settings.captionModelId) {
+                    localCaptionModelId = settings.captionModelId
+                }
+            }
 
             LaunchedEffect(Unit) {
                 snapshotFlow { localCaptionModelId }
@@ -328,7 +356,14 @@ fun PayloadContextSection(
                 onValueChange = { localCaptionModelId = it },
                 label = { Text(stringResource(R.string.settings_caption_model_label)) },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .bringIntoViewRequester(captionBringIntoView)
+                    .onFocusEvent { state ->
+                        if (state.isFocused) {
+                            captionScope.launch { captionBringIntoView.bringIntoView() }
+                        }
+                    }
             )
         }
 

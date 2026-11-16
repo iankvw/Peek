@@ -27,7 +27,7 @@ interface ConversationDao {
                 SELECT m.textContent
                 FROM messages m
                 WHERE m.conversationId = c.id
-                  AND m.textContent LIKE '%' || :query || '%'
+                  AND m.textContent LIKE '%' || :query || '%' ESCAPE '\'
                 ORDER BY m.position DESC
                 LIMIT 1
             ) AS matchedMessageText,
@@ -37,23 +37,23 @@ interface ConversationDao {
                 INNER JOIN messages m2 ON ma.messageId = m2.id
                 WHERE m2.conversationId = c.id
                   AND ma.imageCaption IS NOT NULL
-                  AND ma.imageCaption LIKE '%' || :query || '%'
+                  AND ma.imageCaption LIKE '%' || :query || '%' ESCAPE '\'
                 ORDER BY m2.position DESC, ma.sortIndex ASC
                 LIMIT 1
             ) AS matchedCaptionText
         FROM conversations c
-        WHERE c.title LIKE '%' || :query || '%'
+        WHERE c.title LIKE '%' || :query || '%' ESCAPE '\'
            OR EXISTS (
                SELECT 1 FROM messages m
                WHERE m.conversationId = c.id
-                 AND m.textContent LIKE '%' || :query || '%'
+                 AND m.textContent LIKE '%' || :query || '%' ESCAPE '\'
            )
            OR EXISTS (
                SELECT 1 FROM message_attachments ma
                INNER JOIN messages m2 ON ma.messageId = m2.id
                WHERE m2.conversationId = c.id
                  AND ma.imageCaption IS NOT NULL
-                 AND ma.imageCaption LIKE '%' || :query || '%'
+                 AND ma.imageCaption LIKE '%' || :query || '%' ESCAPE '\'
            )
         ORDER BY c.updatedAt DESC
         """
