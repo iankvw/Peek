@@ -12,6 +12,7 @@ import com.iank.im.peek.domain.model.CaptureResolutionOption
 import com.iank.im.peek.domain.model.ContextRetentionMode
 import com.iank.im.peek.domain.model.ImageResolutionPreset
 import com.iank.im.peek.domain.model.ImageSendMethod
+import com.iank.im.peek.domain.model.ModelGroup
 import com.iank.im.peek.domain.model.OpenAiImageDetail
 import com.iank.im.peek.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
@@ -32,9 +33,24 @@ class SettingsRepositoryImpl @Inject constructor(
     override val presets: Flow<List<ApiPreset>> = apiPresetDao.observeAll()
         .map { list -> list.map { it.toDomain() } }
 
-    override val selectedPreset: Flow<ApiPreset?> = combine(presets, settings) { allPresets, current ->
+    override val modelGroups: Flow<List<ModelGroup>> = settingsDataStore.modelGroupsFlow
+
+    override val selectedPreset: Flow<ApiPreset?> = combine(
+        presets,
+        modelGroups,
+        settings
+    ) { allPresets, allGroups, current ->
         val selectedId = current.selectedPresetId
-        allPresets.firstOrNull { it.id == selectedId } ?: allPresets.firstOrNull()
+        val directPreset = allPresets.firstOrNull { it.id == selectedId }
+        if (directPreset != null) {
+            directPreset
+        } else {
+            val matchedGroup = allGroups.firstOrNull { it.id == selectedId }
+            val firstGroupPreset = matchedGroup?.memberPresetIds?.firstNotNullOfOrNull { memberId ->
+                allPresets.firstOrNull { it.id == memberId }
+            }
+            firstGroupPreset ?: allPresets.firstOrNull()
+        }
     }
 
     override val keystoreCorruptedEvent: Flow<Boolean> = secureKeyStorage.keystoreCorruptedEvent
@@ -45,6 +61,11 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun getPreset(presetId: String): ApiPreset? =
         apiPresetDao.getById(presetId)?.toDomain()
+
+    override suspend fun getModelGroups(): List<ModelGroup> = settingsDataStore.getModelGroups()
+
+    override suspend fun getModelGroup(groupId: String): ModelGroup? =
+        settingsDataStore.getModelGroups().firstOrNull { it.id == groupId }
 
     override suspend fun selectPreset(presetId: String) {
         settingsDataStore.setSelectedPresetId(presetId)
@@ -65,10 +86,64 @@ class SettingsRepositoryImpl @Inject constructor(
         apiPresetDao.deleteById(presetId)
         secureKeyStorage.deleteApiKey(presetId)
 
+        // Remove deleted preset from any model groups; drop groups that fall below 2 members
+        val currentGroups = settingsDataStore.getModelGroups()
+        val updatedGroups = currentGroups.mapNotNull { group ->
+            val filtered = group.memberPresetIds.filterNot { it == presetId }
+            if (filtered.size >= 2) {
+                group.copy(
+                    memberPresetIds = filtered,
+                    lastUsedIndex = group.lastUsedIndex.coerceIn(-1, filtered.size - 1)
+                )
+            } else {
+                null
+            }
+        }
+        if (updatedGroups != currentGroups) {
+            settingsDataStore.setModelGroups(updatedGroups)
+        }
+
         val currentSettings = settingsDataStore.getSettings()
-        if (currentSettings.selectedPresetId == presetId) {
-            val remaining = apiPresetDao.getAll()
-            settingsDataStore.setSelectedPresetId(remaining.firstOrNull()?.id)
+        val selectedId = currentSettings.selectedPresetId
+        val remainingPresets = apiPresetDao.getAll()
+        val selectedStillExists = remainingPresets.any { it.id == selectedId } ||
+            updatedGroups.any { it.id == selectedId }
+        if (!selectedStillExists) {
+            settingsDataStore.setSelectedPresetId(
+                remainingPresets.firstOrNull()?.id ?: updatedGroups.firstOrNull()?.id
+            )
+        }
+    }
+
+    override suspend fun upsertModelGroup(group: ModelGroup) {
+        val current = settingsDataStore.getModelGroups().toMutableList()
+        val idx = current.indexOfFirst { it.id == group.id }
+        if (idx >= 0) {
+            current[idx] = group
+        } else {
+            current.add(group)
+        }
+        settingsDataStore.setModelGroups(current)
+    }
+
+    override suspend fun deleteModelGroup(groupId: String) {
+        val updated = settingsDataStore.getModelGroups().filterNot { it.id == groupId }
+        settingsDataStore.setModelGroups(updated)
+        val currentSettings = settingsDataStore.getSettings()
+        if (currentSettings.selectedPresetId == groupId) {
+            val remainingPresets = apiPresetDao.getAll()
+            settingsDataStore.setSelectedPresetId(
+                remainingPresets.firstOrNull()?.id ?: updated.firstOrNull()?.id
+            )
+        }
+    }
+
+    override suspend fun updateModelGroupLastUsedIndex(groupId: String, lastUsedIndex: Int) {
+        val current = settingsDataStore.getModelGroups().toMutableList()
+        val idx = current.indexOfFirst { it.id == groupId }
+        if (idx >= 0) {
+            current[idx] = current[idx].copy(lastUsedIndex = lastUsedIndex)
+            settingsDataStore.setModelGroups(current)
         }
     }
 

@@ -27,7 +27,7 @@ import com.iank.im.peek.data.local.db.entity.RemoteFileCacheEntity
         PendingFileDeletionEntity::class,
         PendingRemoteDeletionEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(RoomConverters::class)

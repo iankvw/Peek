@@ -33,6 +33,7 @@ import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.Stop
@@ -57,11 +58,13 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.iank.im.peek.R
-import com.iank.im.peek.domain.model.ApiPreset
 import com.iank.im.peek.domain.model.ChatMessage
 import com.iank.im.peek.domain.model.Conversation
+import com.iank.im.peek.domain.model.GroupRoutingMode
 import com.iank.im.peek.domain.model.MessageAttachment
 import com.iank.im.peek.domain.model.PendingAttachment
+import com.iank.im.peek.domain.model.RoundRobinSubMode
+import com.iank.im.peek.domain.model.SelectableTarget
 import com.iank.im.peek.ui.camera.PendingAttachmentsStrip
 import java.io.File
 
@@ -70,8 +73,8 @@ import java.io.File
 fun ChatPanel(
     conversation: Conversation?,
     messages: List<ChatMessage>,
-    presets: List<ApiPreset>,
-    selectedPreset: ApiPreset?,
+    selectableTargets: List<SelectableTarget>,
+    activeTarget: SelectableTarget?,
     pendingAttachments: List<PendingAttachment>,
     inputText: String,
     canSend: Boolean,
@@ -80,7 +83,7 @@ fun ChatPanel(
     onOpenDrawer: () -> Unit,
     onReturnToCamera: () -> Unit,
     onNewConversation: () -> Unit,
-    onSelectPreset: (String) -> Unit,
+    onSelectTarget: (String) -> Unit,
     onOpenSettings: () -> Unit,
     onInputChanged: (String) -> Unit,
     onRemovePending: (String) -> Unit,
@@ -131,7 +134,7 @@ fun ChatPanel(
                         Box {
                             Surface(
                                 onClick = {
-                                    if (presets.isEmpty()) {
+                                    if (selectableTargets.isEmpty()) {
                                         onOpenSettings()
                                     } else {
                                         isPresetMenuOpen = !isPresetMenuOpen
@@ -151,14 +154,18 @@ fun ChatPanel(
                                         .widthIn(max = 200.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Rounded.AutoAwesome,
+                                        imageVector = if (activeTarget?.isGroup == true) {
+                                            Icons.Rounded.Layers
+                                        } else {
+                                            Icons.Rounded.AutoAwesome
+                                        },
                                         contentDescription = stringResource(R.string.cd_select_preset),
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = selectedPreset?.alias?.ifBlank { selectedPreset.modelId }
+                                        text = activeTarget?.displayName
                                             ?: stringResource(R.string.preset_none_configured),
                                         style = MaterialTheme.typography.labelLarge,
                                         color = MaterialTheme.colorScheme.onSurface,
@@ -166,7 +173,7 @@ fun ChatPanel(
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.weight(1f, fill = false)
                                     )
-                                    if (presets.isNotEmpty()) {
+                                    if (selectableTargets.isNotEmpty()) {
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Icon(
                                             imageVector = Icons.Rounded.KeyboardArrowDown,
@@ -179,23 +186,85 @@ fun ChatPanel(
                             }
 
                             DropdownMenu(
-                                expanded = isPresetMenuOpen && presets.isNotEmpty(),
+                                expanded = isPresetMenuOpen && selectableTargets.isNotEmpty(),
                                 onDismissRequest = { isPresetMenuOpen = false }
                             ) {
-                                presets.forEach { preset ->
-                                    val isSelected = preset.id == selectedPreset?.id
+                                selectableTargets.forEach { target ->
+                                    val isSelected = target.id == activeTarget?.id
                                     DropdownMenuItem(
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = if (target.isGroup) {
+                                                    Icons.Rounded.Layers
+                                                } else {
+                                                    Icons.Rounded.AutoAwesome
+                                                },
+                                                contentDescription = null,
+                                                tint = if (isSelected) {
+                                                    MaterialTheme.colorScheme.primary
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                                },
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        },
                                         text = {
-                                            Column {
-                                                Text(
-                                                    text = preset.alias.ifBlank { preset.modelId },
-                                                    style = MaterialTheme.typography.bodyMedium
-                                                )
-                                                Text(
-                                                    text = "${preset.provider.name} · ${preset.modelId}",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
+                                            when (target) {
+                                                is SelectableTarget.PresetTarget -> {
+                                                    Column {
+                                                        Text(
+                                                            text = target.displayName,
+                                                            style = MaterialTheme.typography.bodyMedium
+                                                        )
+                                                        Text(
+                                                            text = "${target.preset.provider.name} · ${target.preset.modelId}",
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+                                                is SelectableTarget.GroupTarget -> {
+                                                    val modeText = when (target.group.routingMode) {
+                                                        GroupRoutingMode.FALLBACK ->
+                                                            stringResource(R.string.group_routing_fallback)
+                                                        GroupRoutingMode.ROUND_ROBIN ->
+                                                            when (target.group.roundRobinSubMode) {
+                                                                RoundRobinSubMode.SEQUENTIAL ->
+                                                                    stringResource(R.string.group_routing_rr_sequential_short)
+                                                                RoundRobinSubMode.RANDOM ->
+                                                                    stringResource(R.string.group_routing_rr_random_short)
+                                                            }
+                                                    }
+                                                    Column {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                        ) {
+                                                            Text(
+                                                                text = target.displayName,
+                                                                style = MaterialTheme.typography.bodyMedium
+                                                            )
+                                                            Surface(
+                                                                color = MaterialTheme.colorScheme.primaryContainer,
+                                                                shape = CircleShape
+                                                            ) {
+                                                                Text(
+                                                                    text = stringResource(R.string.group_badge_label),
+                                                                    style = MaterialTheme.typography.labelSmall,
+                                                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
+                                                                )
+                                                            }
+                                                        }
+                                                        Text(
+                                                            text = "$modeText · ${target.memberNames.joinToString(", ")}",
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                    }
+                                                }
                                             }
                                         },
                                         trailingIcon = {
@@ -208,7 +277,7 @@ fun ChatPanel(
                                             }
                                         },
                                         onClick = {
-                                            onSelectPreset(preset.id)
+                                            onSelectTarget(target.id)
                                             isPresetMenuOpen = false
                                         }
                                     )

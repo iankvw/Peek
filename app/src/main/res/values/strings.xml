@@ -156,12 +156,42 @@
     <string name="settings_preset_max_bytes_label">Max Request Size (MB, optional)</string>
     <string name="settings_preset_max_bytes_hint">Leave blank for provider default</string>
     <string name="settings_preset_saved">Preset saved</string>
+    <string name="settings_preset_cloned">Preset cloned</string>
     <string name="settings_preset_deleted">Preset deleted</string>
     <string name="settings_preset_delete_title">Delete API preset?</string>
     <string name="settings_preset_delete_message">Delete \'%1$s\' and its stored API key?</string>
+    <string name="action_clone_preset">Clone Preset</string>
+    <string name="settings_preset_clone_name_format">%1$s (Copy)</string>
     <string name="settings_connection_testing">Testing connection…</string>
     <string name="settings_connection_success">Connection succeeded</string>
     <string name="settings_openai_file_api_disabled">OpenAI-compatible providers always send images inline via Base64.</string>
+
+    <!-- Model Groups -->
+    <string name="settings_model_groups_header">Model Groups</string>
+    <string name="settings_add_group">Add Group</string>
+    <string name="settings_edit_group">Edit Group</string>
+    <string name="cd_delete_group">Delete model group</string>
+    <string name="group_badge_label">Group</string>
+    <string name="settings_group_min_presets_hint">Register at least 2 API presets above to create a model group.</string>
+    <string name="settings_group_name_label">Group Name</string>
+    <string name="settings_group_name_placeholder">e.g. Fast Vision Fallback / Multi-Model Pool</string>
+    <string name="settings_group_routing_label">Routing Strategy</string>
+    <string name="group_routing_fallback">Fallback</string>
+    <string name="group_routing_round_robin">Round-Robin</string>
+    <string name="group_routing_rr_sequential_short">Round-Robin (Seq)</string>
+    <string name="group_routing_rr_random_short">Round-Robin (Random)</string>
+    <string name="group_routing_fallback_desc">Tries selected presets in order (#1 → #2 → #3…) and automatically switches to the next model on error.</string>
+    <string name="group_routing_round_robin_desc">Distributes requests across member presets sequentially or randomly.</string>
+    <string name="settings_group_rr_submode_label">Round-Robin Order</string>
+    <string name="group_rr_submode_sequential">Sequential</string>
+    <string name="group_rr_submode_random">Random</string>
+    <string name="settings_group_rr_failover_toggle">Fail over to remaining members if selected model fails</string>
+    <string name="settings_group_members_label">Member Presets (select 2 or more, ordered by priority)</string>
+    <string name="settings_group_base64_notice">Note: Model groups always send images inline via Base64 (Gemini File API upload is disabled for groups).</string>
+    <string name="settings_group_saved">Model group saved</string>
+    <string name="settings_group_deleted">Model group deleted</string>
+    <string name="settings_group_delete_title">Delete model group?</string>
+    <string name="settings_group_delete_message">Delete model group \'%1$s\'? Individual presets will not be deleted.</string>
 
     <!-- Payload & Context Section -->
     <string name="settings_context_header">Context &amp; Image Payload</string>

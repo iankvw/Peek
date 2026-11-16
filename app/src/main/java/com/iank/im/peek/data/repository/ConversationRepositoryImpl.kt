@@ -78,6 +78,7 @@ class ConversationRepositoryImpl @Inject constructor(
     override suspend fun commitTurn(
         conversationId: String?,
         conversationTitle: String,
+        activeTargetId: String?,
         userMessageId: String,
         assistantMessageId: String,
         userText: String,
@@ -95,12 +96,16 @@ class ConversationRepositoryImpl @Inject constructor(
                     ConversationEntity(
                         id = resolvedConversationId,
                         title = conversationTitle,
+                        activeTargetId = activeTargetId,
                         overrideResolutionPreset = null,
                         createdAt = now,
                         updatedAt = now
                     )
                 )
             } else {
+                if (existing.activeTargetId == null && activeTargetId != null) {
+                    conversationDao.updateActiveTargetId(resolvedConversationId, activeTargetId)
+                }
                 conversationDao.updateUpdatedAt(resolvedConversationId, now)
             }
 
@@ -389,6 +394,10 @@ class ConversationRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun updateConversationActiveTarget(conversationId: String, targetId: String?) {
+        conversationDao.updateActiveTargetId(conversationId, targetId)
+    }
+
     override suspend fun updateSingleAttachmentResolution(
         attachmentId: String,
         preset: ImageResolutionPreset
@@ -484,6 +493,7 @@ class ConversationRepositoryImpl @Inject constructor(
     private fun ConversationEntity.toDomain(): Conversation = Conversation(
         id = id,
         title = title,
+        activeTargetId = activeTargetId,
         overrideResolutionPreset = overrideResolutionPreset,
         createdAt = createdAt,
         updatedAt = updatedAt

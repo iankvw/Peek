@@ -1,7 +1,7 @@
 package com.iank.im.peek.domain.usecase
 
 import com.iank.im.peek.di.ApplicationScope
-import com.iank.im.peek.domain.model.ApiPreset
+import com.iank.im.peek.domain.model.ExecutionTarget
 import com.iank.im.peek.domain.model.MessageRole
 import com.iank.im.peek.domain.repository.ConversationRepository
 import com.iank.im.peek.domain.repository.VisionAiRepository
@@ -21,8 +21,7 @@ class EditMessageUseCase @Inject constructor(
     suspend operator fun invoke(
         messageId: String,
         newText: String,
-        preset: ApiPreset?,
-        apiKey: String?
+        executionTarget: ExecutionTarget?
     ) {
         val message = conversationRepository.getMessage(messageId) ?: return
         val trimmed = newText.trim()
@@ -32,8 +31,8 @@ class EditMessageUseCase @Inject constructor(
                 conversationRepository.updateMessageText(messageId, trimmed)
             }
             MessageRole.USER -> {
-                val activePreset = preset ?: return
-                val resolvedKey = apiKey.orEmpty()
+                val target = executionTarget ?: return
+                val firstCandidate = target.orderedCandidates.first().first
                 sendChatMessageUseCase.cancelConversationRequest(message.conversationId)
 
                 val assistantMessageId = UUID.randomUUID().toString()
@@ -41,8 +40,8 @@ class EditMessageUseCase @Inject constructor(
                     messageId = messageId,
                     newText = trimmed,
                     assistantMessageId = assistantMessageId,
-                    presetId = activePreset.id,
-                    modelId = activePreset.modelId
+                    presetId = firstCandidate.id,
+                    modelId = firstCandidate.modelId
                 ) ?: return
 
                 applicationScope.launch {
@@ -53,8 +52,7 @@ class EditMessageUseCase @Inject constructor(
                     conversationId = conversationId,
                     userMessageId = message.id,
                     assistantMessageId = assistantMessageId,
-                    preset = activePreset,
-                    apiKey = resolvedKey
+                    executionTarget = target
                 )
             }
         }

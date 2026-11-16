@@ -42,7 +42,8 @@ class BuildApiPayloadUseCase @Inject constructor(
         targetUserMessageId: String,
         preset: ApiPreset,
         settings: AppSettings,
-        forceAggressiveDegrade: Boolean = false
+        forceAggressiveDegrade: Boolean = false,
+        forceInlineBase64: Boolean = false
     ): BuildPayloadResult {
         val conversation = conversationRepository.getConversation(conversationId)
         val allMessages = conversationRepository.getMessages(conversationId)
@@ -90,7 +91,11 @@ class BuildApiPayloadUseCase @Inject constructor(
             .toSet()
 
         val notices = mutableListOf<PreflightNotice>()
-        var effectiveSendMethod = preset.effectiveSendMethod(settings.imageSendMethod)
+        var effectiveSendMethod = if (forceInlineBase64) {
+            ImageSendMethod.BASE64
+        } else {
+            preset.effectiveSendMethod(settings.imageSendMethod)
+        }
         val conversationOverride = conversation?.overrideResolutionPreset
 
         data class MutableImageState(
@@ -194,8 +199,11 @@ class BuildApiPayloadUseCase @Inject constructor(
         var maxBytes = payloadSizeEstimator.resolveMaxRequestBytes(preset, effectiveSendMethod)
 
         if (forceAggressiveDegrade || currentEstimatedBytes(currentTurns) > maxBytes) {
-            // Stage 1: Switch Gemini BASE64 -> FILE_API
-            if (preset.provider == ApiProvider.GEMINI && effectiveSendMethod == ImageSendMethod.BASE64) {
+            // Stage 1: Switch Gemini BASE64 -> FILE_API (disabled when forceInlineBase64 is true for Model Groups)
+            if (!forceInlineBase64 &&
+                preset.provider == ApiProvider.GEMINI &&
+                effectiveSendMethod == ImageSendMethod.BASE64
+            ) {
                 effectiveSendMethod = ImageSendMethod.FILE_API
                 maxBytes = payloadSizeEstimator.resolveMaxRequestBytes(preset, effectiveSendMethod)
                 notices += PreflightNotice.SwitchedToFileApi

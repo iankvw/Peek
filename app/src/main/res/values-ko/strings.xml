@@ -156,12 +156,42 @@
     <string name="settings_preset_max_bytes_label">요청 크기 상한 (MB, 선택)</string>
     <string name="settings_preset_max_bytes_hint">비워 두면 공급자 기본값 사용</string>
     <string name="settings_preset_saved">프리셋이 저장되었습니다</string>
+    <string name="settings_preset_cloned">프리셋이 복제되었습니다</string>
     <string name="settings_preset_deleted">프리셋이 삭제되었습니다</string>
     <string name="settings_preset_delete_title">API 프리셋을 삭제할까요?</string>
     <string name="settings_preset_delete_message">‘%1$s’ 프리셋과 저장된 API 키를 삭제할까요?</string>
+    <string name="action_clone_preset">프리셋 복제</string>
+    <string name="settings_preset_clone_name_format">%1$s (복사본)</string>
     <string name="settings_connection_testing">연결 확인 중…</string>
     <string name="settings_connection_success">연결에 성공했습니다</string>
     <string name="settings_openai_file_api_disabled">OpenAI 호환 공급자는 항상 Base64 인라인 방식으로 이미지를 전송합니다.</string>
+
+    <!-- Model Groups -->
+    <string name="settings_model_groups_header">모델 그룹</string>
+    <string name="settings_add_group">그룹 추가</string>
+    <string name="settings_edit_group">그룹 편집</string>
+    <string name="cd_delete_group">모델 그룹 삭제</string>
+    <string name="group_badge_label">그룹</string>
+    <string name="settings_group_min_presets_hint">모델 그룹을 만들려면 먼저 위에서 API 프리셋을 2개 이상 등록해 주세요.</string>
+    <string name="settings_group_name_label">그룹 이름</string>
+    <string name="settings_group_name_placeholder">예: 고속 폴백 그룹 / 멀티 모델 풀</string>
+    <string name="settings_group_routing_label">라우팅 방식</string>
+    <string name="group_routing_fallback">폴백 (Fallback)</string>
+    <string name="group_routing_round_robin">라운드 로빈</string>
+    <string name="group_routing_rr_sequential_short">라운드 로빈 (순차)</string>
+    <string name="group_routing_rr_random_short">라운드 로빈 (랜덤)</string>
+    <string name="group_routing_fallback_desc">지정된 우선순위(#1 → #2 → #3…)대로 시도하며, 호출 실패 시 다음 순위 모델로 자동 전환해 재시도합니다.</string>
+    <string name="group_routing_round_robin_desc">요청마다 그룹 내 프리셋들을 순차 또는 랜덤으로 돌아가며 선택합니다.</string>
+    <string name="settings_group_rr_submode_label">라운드 로빈 순서</string>
+    <string name="group_rr_submode_sequential">정해진 순서대로 (순차)</string>
+    <string name="group_rr_submode_random">랜덤 (무작위)</string>
+    <string name="settings_group_rr_failover_toggle">선택된 모델 실패 시 나머지 멤버로 자동 페일오버</string>
+    <string name="settings_group_members_label">멤버 프리셋 선택 (2개 이상, 우선순위 순서 지정)</string>
+    <string name="settings_group_base64_notice">안내: 모델 그룹 사용 시에는 Gemini 모델만 포함되어 있더라도 File API 업로드를 사용하지 않고 항상 인라인 Base64로 이미지를 전송합니다.</string>
+    <string name="settings_group_saved">모델 그룹이 저장되었습니다</string>
+    <string name="settings_group_deleted">모델 그룹이 삭제되었습니다</string>
+    <string name="settings_group_delete_title">모델 그룹을 삭제할까요?</string>
+    <string name="settings_group_delete_message">‘%1$s’ 모델 그룹을 삭제할까요? 개별 API 프리셋은 삭제되지 않습니다.</string>
 
     <!-- Payload & Context Section -->
     <string name="settings_context_header">컨텍스트 및 이미지 전송</string>

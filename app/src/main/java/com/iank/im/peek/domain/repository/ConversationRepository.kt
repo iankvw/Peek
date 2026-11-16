@@ -21,6 +21,7 @@ interface ConversationRepository {
     suspend fun commitTurn(
         conversationId: String?,
         conversationTitle: String,
+        activeTargetId: String?,
         userMessageId: String,
         assistantMessageId: String,
         userText: String,
@@ -74,6 +75,7 @@ interface ConversationRepository {
     suspend fun toggleAttachmentTextReplaced(attachmentId: String)
     suspend fun updateAttachmentCaption(attachmentId: String, caption: String)
     suspend fun updateConversationTitle(conversationId: String, title: String)
+    suspend fun updateConversationActiveTarget(conversationId: String, targetId: String?)
     suspend fun updateSingleAttachmentResolution(attachmentId: String, preset: ImageResolutionPreset)
     suspend fun updateConversationResolution(conversationId: String, preset: ImageResolutionPreset)
     suspend fun deleteConversation(conversationId: String)

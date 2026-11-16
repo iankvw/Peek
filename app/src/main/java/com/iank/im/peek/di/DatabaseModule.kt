@@ -26,7 +26,9 @@ object DatabaseModule {
             context,
             PeekDatabase::class.java,
             PeekDatabase.DATABASE_NAME
-        ).build()
+        )
+            .fallbackToDestructiveMigration(dropAllTables = true)
+            .build()
     }
 
     @Provides

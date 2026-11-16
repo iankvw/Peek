@@ -12,6 +12,7 @@ import com.iank.im.peek.domain.model.ImageResolutionPreset
 data class ConversationEntity(
     @PrimaryKey val id: String,
     val title: String,
+    val activeTargetId: String? = null,
     val overrideResolutionPreset: ImageResolutionPreset?,
     val createdAt: Long,
     val updatedAt: Long

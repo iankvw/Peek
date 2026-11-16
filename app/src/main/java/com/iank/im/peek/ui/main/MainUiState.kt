@@ -5,7 +5,9 @@ import com.iank.im.peek.domain.model.AppSettings
 import com.iank.im.peek.domain.model.CameraLensOption
 import com.iank.im.peek.domain.model.ChatMessage
 import com.iank.im.peek.domain.model.Conversation
+import com.iank.im.peek.domain.model.ModelGroup
 import com.iank.im.peek.domain.model.PendingAttachment
+import com.iank.im.peek.domain.model.SelectableTarget
 import com.iank.im.peek.ui.common.UiText
 
 enum class ScreenMode {
@@ -23,6 +25,10 @@ data class MainUiState(
     val inputText: String = "",
     val drawerSearchQuery: String = "",
     val presets: List<ApiPreset> = emptyList(),
+    val modelGroups: List<ModelGroup> = emptyList(),
+    val selectableTargets: List<SelectableTarget> = emptyList(),
+    val activeTarget: SelectableTarget? = null,
+    val globalSelectedTargetId: String? = null,
     val selectedPreset: ApiPreset? = null,
     val settings: AppSettings = AppSettings(),
     val hasCameraPermission: Boolean = false,

@@ -281,8 +281,8 @@ fun MainScreen(
             if (uiState.screenMode == ScreenMode.CAMERA_EXPLORE) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     TopControlBar(
-                        presets = uiState.presets,
-                        selectedPreset = uiState.selectedPreset,
+                        selectableTargets = uiState.selectableTargets,
+                        activeTarget = uiState.activeTarget,
                         activeConversation = uiState.activeConversation,
                         activeLens = uiState.activeCameraLens,
                         isPresetMenuOpen = uiState.overlay is OverlayState.PresetMenu,
@@ -298,7 +298,7 @@ fun MainScreen(
                                 if (open) OverlayState.PresetMenu else OverlayState.None
                             )
                         },
-                        onSelectPreset = viewModel::selectPreset,
+                        onSelectTarget = viewModel::selectTargetForCurrentContext,
                         onOpenSettings = { viewModel.setOverlay(OverlayState.Settings) },
                         onSelectLens = viewModel::selectCameraLens,
                         onSwitchLens = viewModel::toggleCameraLens,
@@ -340,8 +340,8 @@ fun MainScreen(
                 ChatPanel(
                     conversation = uiState.activeConversation,
                     messages = uiState.messages,
-                    presets = uiState.presets,
-                    selectedPreset = uiState.selectedPreset,
+                    selectableTargets = uiState.selectableTargets,
+                    activeTarget = uiState.activeTarget,
                     pendingAttachments = uiState.pendingAttachments,
                     inputText = uiState.inputText,
                     canSend = uiState.canSend,
@@ -356,7 +356,7 @@ fun MainScreen(
                         viewModel.navigateToCameraExplore(keepConversation = true)
                     },
                     onNewConversation = viewModel::startNewConversationFromDrawer,
-                    onSelectPreset = viewModel::selectPreset,
+                    onSelectTarget = viewModel::selectTargetForCurrentContext,
                     onOpenSettings = { viewModel.setOverlay(OverlayState.Settings) },
                     onInputChanged = viewModel::updateInputText,
                     onRemovePending = viewModel::removePendingAttachment,
@@ -408,6 +408,8 @@ fun MainScreen(
         OverlayState.Settings -> {
             SettingsBottomSheet(
                 presets = uiState.presets,
+                modelGroups = uiState.modelGroups,
+                selectedTargetId = uiState.globalSelectedTargetId,
                 selectedPreset = uiState.selectedPreset,
                 settings = uiState.settings,
                 storageUsageBytes = uiState.storageUsageBytes,
@@ -416,7 +418,10 @@ fun MainScreen(
                 onSelectPreset = viewModel::selectPreset,
                 onLoadApiKey = viewModel::loadApiKeyForPreset,
                 onSavePreset = viewModel::savePreset,
+                onClonePreset = viewModel::clonePreset,
                 onDeletePreset = viewModel::deletePreset,
+                onSaveModelGroup = viewModel::saveModelGroup,
+                onDeleteModelGroup = viewModel::deleteModelGroup,
                 onTestConnection = viewModel::testPresetConnection,
                 onResetConnectionTest = viewModel::resetConnectionTestStatus,
                 onUpdateSendMethod = viewModel::updateImageSendMethod,

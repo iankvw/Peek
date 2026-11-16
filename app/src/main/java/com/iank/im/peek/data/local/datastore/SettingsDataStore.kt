@@ -15,11 +15,13 @@ import com.iank.im.peek.domain.model.CaptureResolutionOption
 import com.iank.im.peek.domain.model.ContextRetentionMode
 import com.iank.im.peek.domain.model.ImageResolutionPreset
 import com.iank.im.peek.domain.model.ImageSendMethod
+import com.iank.im.peek.domain.model.ModelGroup
 import com.iank.im.peek.domain.model.OpenAiImageDetail
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import java.io.IOException
 import java.security.SecureRandom
@@ -47,6 +49,7 @@ class SettingsDataStore @Inject constructor(
         val SYSTEM_PROMPT = stringPreferencesKey("system_prompt")
         val OPENAI_IMAGE_DETAIL = stringPreferencesKey("openai_image_detail")
         val OPENAI_USE_DEVELOPER_ROLE = booleanPreferencesKey("openai_use_developer_role")
+        val MODEL_GROUPS_JSON = stringPreferencesKey("model_groups_json")
         val LAST_ORPHAN_SWEEP_AT = longPreferencesKey("last_orphan_sweep_at")
         val APP_SALT = stringPreferencesKey("app_salt")
     }
@@ -57,7 +60,25 @@ class SettingsDataStore @Inject constructor(
         }
         .map { prefs -> mapPreferencesToSettings(prefs) }
 
+    val modelGroupsFlow: Flow<List<ModelGroup>> = dataStore.data
+        .catch { e ->
+            if (e is IOException) emit(emptyPreferences()) else throw e
+        }
+        .map { prefs ->
+            val raw = prefs[Keys.MODEL_GROUPS_JSON] ?: return@map emptyList()
+            runCatching {
+                json.decodeFromString(ListSerializer(ModelGroup.serializer()), raw)
+            }.getOrDefault(emptyList())
+        }
+
     suspend fun getSettings(): AppSettings = settingsFlow.first()
+
+    suspend fun getModelGroups(): List<ModelGroup> = modelGroupsFlow.first()
+
+    suspend fun setModelGroups(groups: List<ModelGroup>) {
+        val encoded = json.encodeToString(ListSerializer(ModelGroup.serializer()), groups)
+        dataStore.edit { it[Keys.MODEL_GROUPS_JSON] = encoded }
+    }
 
     suspend fun setSelectedPresetId(presetId: String?) {
         dataStore.edit { prefs ->

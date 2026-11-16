@@ -45,6 +45,7 @@ import com.iank.im.peek.domain.model.CaptureResolutionOption
 import com.iank.im.peek.domain.model.ContextRetentionMode
 import com.iank.im.peek.domain.model.ImageResolutionPreset
 import com.iank.im.peek.domain.model.ImageSendMethod
+import com.iank.im.peek.domain.model.ModelGroup
 import com.iank.im.peek.domain.model.OpenAiImageDetail
 import com.iank.im.peek.ui.main.ConnectionTestUiState
 import kotlinx.coroutines.launch
@@ -53,6 +54,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsBottomSheet(
     presets: List<ApiPreset>,
+    modelGroups: List<ModelGroup>,
+    selectedTargetId: String?,
     selectedPreset: ApiPreset?,
     settings: AppSettings,
     storageUsageBytes: Long,
@@ -61,7 +64,10 @@ fun SettingsBottomSheet(
     onSelectPreset: (String) -> Unit,
     onLoadApiKey: suspend (String) -> String,
     onSavePreset: (ApiPreset, String) -> Unit,
+    onClonePreset: (ApiPreset, String, String) -> Unit,
     onDeletePreset: (String) -> Unit,
+    onSaveModelGroup: (ModelGroup) -> Unit,
+    onDeleteModelGroup: (String) -> Unit,
     onTestConnection: (ApiPreset, String) -> Unit,
     onResetConnectionTest: () -> Unit,
     onUpdateSendMethod: (ImageSendMethod) -> Unit,
@@ -165,12 +171,16 @@ fun SettingsBottomSheet(
                     when (selectedTab) {
                         0 -> ApiPresetSection(
                             presets = presets,
-                            selectedPresetId = selectedPreset?.id,
+                            modelGroups = modelGroups,
+                            selectedPresetId = selectedTargetId,
                             connectionTestStatus = connectionTestStatus,
                             onSelectPreset = onSelectPreset,
                             onLoadApiKey = onLoadApiKey,
                             onSavePreset = onSavePreset,
+                            onClonePreset = onClonePreset,
                             onDeletePreset = onDeletePreset,
+                            onSaveModelGroup = onSaveModelGroup,
+                            onDeleteModelGroup = onDeleteModelGroup,
                             onTestConnection = onTestConnection,
                             onResetConnectionTest = onResetConnectionTest
                         )

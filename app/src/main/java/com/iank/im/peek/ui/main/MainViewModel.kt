@@ -18,8 +18,10 @@ import com.iank.im.peek.domain.model.ContextRetentionMode
 import com.iank.im.peek.domain.model.ImageResolutionPreset
 import com.iank.im.peek.domain.model.ImageSendMethod
 import com.iank.im.peek.domain.model.MessageAttachment
+import com.iank.im.peek.domain.model.ModelGroup
 import com.iank.im.peek.domain.model.OpenAiImageDetail
 import com.iank.im.peek.domain.model.PendingAttachment
+import com.iank.im.peek.domain.model.SelectableTarget
 import com.iank.im.peek.domain.repository.ConversationRepository
 import com.iank.im.peek.domain.repository.SettingsRepository
 import com.iank.im.peek.domain.repository.VisionAiRepository
@@ -27,6 +29,7 @@ import com.iank.im.peek.domain.usecase.ActiveSendRegistry
 import com.iank.im.peek.domain.usecase.CommitAttachmentsUseCase
 import com.iank.im.peek.domain.usecase.DeleteConversationUseCase
 import com.iank.im.peek.domain.usecase.EditMessageUseCase
+import com.iank.im.peek.domain.usecase.ExecutionTargetResolution
 import com.iank.im.peek.domain.usecase.LocalizedResourceProvider
 import com.iank.im.peek.domain.usecase.ReprocessAttachmentResolutionUseCase
 import com.iank.im.peek.domain.usecase.SendChatMessageUseCase
@@ -77,6 +80,7 @@ class MainViewModel @Inject constructor(
 
     private val screenModeFlow = MutableStateFlow(restoreScreenMode())
     private val activeConversationIdFlow = MutableStateFlow(restoreActiveConversationId())
+    private val newConversationTargetOverrideIdFlow = MutableStateFlow<String?>(null)
     private val pendingAttachmentsFlow = MutableStateFlow(restorePendingAttachments())
     private val inputTextFlow = MutableStateFlow("")
     private val drawerSearchQueryFlow = MutableStateFlow("")
@@ -121,7 +125,8 @@ class MainViewModel @Inject constructor(
         val inputText: String,
         val searchQuery: String,
         val overlay: OverlayState,
-        val storageBytes: Long
+        val storageBytes: Long,
+        val newConvTargetOverrideId: String?
     )
 
     private data class HardwareUiSlice(
@@ -146,13 +151,29 @@ class MainViewModel @Inject constructor(
     }
 
     private val inputSliceFlow = combine(
-        pendingAttachmentsFlow,
-        inputTextFlow,
-        drawerSearchQueryFlow,
-        overlayFlow,
-        storageUsageBytesFlow
-    ) { pending, input, query, overlay, bytes ->
-        InputUiSlice(pending, input, query, overlay, bytes)
+        combine(
+            pendingAttachmentsFlow,
+            inputTextFlow,
+            drawerSearchQueryFlow
+        ) { pending, input, query ->
+            Triple(pending, input, query)
+        },
+        combine(
+            overlayFlow,
+            storageUsageBytesFlow,
+            newConversationTargetOverrideIdFlow
+        ) { overlay, bytes, newConvTargetId ->
+            Triple(overlay, bytes, newConvTargetId)
+        }
+    ) { mainInput, extraInput ->
+        InputUiSlice(
+            pending = mainInput.first,
+            inputText = mainInput.second,
+            searchQuery = mainInput.third,
+            overlay = extraInput.first,
+            storageBytes = extraInput.second,
+            newConvTargetOverrideId = extraInput.third
+        )
     }
 
     private val isSendingInActiveFlow = combine(
@@ -197,6 +218,7 @@ class MainViewModel @Inject constructor(
         inputSliceFlow,
         hardwareSliceFlow,
         settingsRepository.presets,
+        settingsRepository.modelGroups,
         settingsRepository.selectedPreset,
         settingsRepository.settings
     ) { values ->
@@ -205,8 +227,35 @@ class MainViewModel @Inject constructor(
         val hw = values[2] as HardwareUiSlice
         @Suppress("UNCHECKED_CAST")
         val presets = values[3] as List<ApiPreset>
-        val selectedPreset = values[4] as ApiPreset?
-        val settings = values[5] as AppSettings
+        @Suppress("UNCHECKED_CAST")
+        val modelGroups = values[4] as List<ModelGroup>
+        val selectedPreset = values[5] as ApiPreset?
+        val settings = values[6] as AppSettings
+
+        val presetMap = presets.associateBy { it.id }
+        val selectableTargets = buildList<SelectableTarget> {
+            presets.forEach { add(SelectableTarget.PresetTarget(it)) }
+            modelGroups.forEach { group ->
+                val memberNames = group.memberPresetIds.mapNotNull { id ->
+                    presetMap[id]?.let { p -> p.alias.ifBlank { p.modelId } }
+                }
+                if (memberNames.size >= 2) {
+                    add(SelectableTarget.GroupTarget(group = group, memberNames = memberNames))
+                }
+            }
+        }
+        val targetById = selectableTargets.associateBy { it.id }
+
+        val globalSelectedTargetId = settings.selectedPresetId?.takeIf { it in targetById }
+            ?: selectableTargets.firstOrNull()?.id
+
+        val activeConv = core.activeConversation
+        val effectiveTargetId = if (activeConv != null) {
+            activeConv.activeTargetId?.takeIf { it in targetById } ?: globalSelectedTargetId
+        } else {
+            input.newConvTargetOverrideId?.takeIf { it in targetById } ?: globalSelectedTargetId
+        }
+        val activeTarget = effectiveTargetId?.let { targetById[it] } ?: selectableTargets.firstOrNull()
 
         MainUiState(
             screenMode = core.screenMode,
@@ -218,6 +267,10 @@ class MainViewModel @Inject constructor(
             inputText = input.inputText,
             drawerSearchQuery = input.searchQuery,
             presets = presets,
+            modelGroups = modelGroups,
+            selectableTargets = selectableTargets,
+            activeTarget = activeTarget,
+            globalSelectedTargetId = globalSelectedTargetId,
             selectedPreset = selectedPreset,
             settings = settings,
             hasCameraPermission = hw.hasCameraPermission,
@@ -499,12 +552,14 @@ class MainViewModel @Inject constructor(
         _events.tryEmit(UiEvent.HideKeyboardAndClearFocus)
         overlayFlow.value = OverlayState.None
         if (!keepConversation) {
+            newConversationTargetOverrideIdFlow.value = null
             setActiveConversationId(null)
         }
         setScreenMode(ScreenMode.CAMERA_EXPLORE)
     }
 
     fun detachContinuingConversation() {
+        newConversationTargetOverrideIdFlow.value = null
         setActiveConversationId(null)
     }
 
@@ -527,6 +582,7 @@ class MainViewModel @Inject constructor(
         _events.tryEmit(UiEvent.CloseDrawer)
         _events.tryEmit(UiEvent.HideKeyboardAndClearFocus)
         overlayFlow.value = OverlayState.None
+        newConversationTargetOverrideIdFlow.value = null
         setActiveConversationId(null)
         setScreenMode(ScreenMode.CAMERA_EXPLORE)
     }
@@ -535,6 +591,7 @@ class MainViewModel @Inject constructor(
         _events.tryEmit(UiEvent.CloseDrawer)
         _events.tryEmit(UiEvent.HideKeyboardAndClearFocus)
         overlayFlow.value = OverlayState.None
+        newConversationTargetOverrideIdFlow.value = null
         setActiveConversationId(conversationId)
         setScreenMode(ScreenMode.CHAT_ACTIVE)
     }
@@ -550,28 +607,29 @@ class MainViewModel @Inject constructor(
                 _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_resolution_updating)))
                 return@launch
             }
-            val preset = state.selectedPreset
-            if (preset == null) {
-                _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_no_preset)))
-                setOverlay(OverlayState.Settings)
-                return@launch
-            }
-            if (preset.modelId.isBlank()) {
-                _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_missing_model)))
-                setOverlay(OverlayState.Settings)
-                return@launch
-            }
-            val apiKey = settingsRepository.getApiKey(preset.id).orEmpty()
-            val keyRequired = !(preset.provider == com.iank.im.peek.domain.model.ApiProvider.OPENAI &&
-                preset.customBaseUrlEnabled)
-            if (keyRequired && apiKey.isBlank()) {
-                _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_missing_api_key)))
-                setOverlay(OverlayState.Settings)
-                return@launch
-            }
             if (state.inputText.isBlank() && state.pendingAttachments.isEmpty()) {
                 _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_empty_send)))
                 return@launch
+            }
+
+            val requestedTargetId = state.activeTarget?.id
+            val executionTarget = when (val res = sendChatMessageUseCase.prepareExecutionTarget(requestedTargetId)) {
+                is ExecutionTargetResolution.Ready -> res.target
+                ExecutionTargetResolution.NoPresetConfigured -> {
+                    _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_no_preset)))
+                    setOverlay(OverlayState.Settings)
+                    return@launch
+                }
+                ExecutionTargetResolution.MissingModelId -> {
+                    _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_missing_model)))
+                    setOverlay(OverlayState.Settings)
+                    return@launch
+                }
+                ExecutionTargetResolution.MissingApiKey -> {
+                    _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_missing_api_key)))
+                    setOverlay(OverlayState.Settings)
+                    return@launch
+                }
             }
 
             val wasExploring = state.screenMode == ScreenMode.CAMERA_EXPLORE
@@ -593,9 +651,9 @@ class MainViewModel @Inject constructor(
                 conversationId = state.activeConversationId,
                 userText = textToSend,
                 pendingAttachments = pendingToCommit,
-                preset = preset,
-                apiKey = apiKey
+                executionTarget = executionTarget
             )
+            newConversationTargetOverrideIdFlow.value = null
             setActiveConversationId(resolvedId)
             refreshStorageUsage()
         }
@@ -603,22 +661,25 @@ class MainViewModel @Inject constructor(
 
     fun retryAssistantMessage(assistantMessageId: String) {
         viewModelScope.launch {
-            val preset = uiState.value.selectedPreset
-            if (preset == null) {
-                _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_no_preset)))
-                return@launch
-            }
-            val apiKey = settingsRepository.getApiKey(preset.id).orEmpty()
-            val keyRequired = !(preset.provider == com.iank.im.peek.domain.model.ApiProvider.OPENAI &&
-                preset.customBaseUrlEnabled)
-            if (keyRequired && apiKey.isBlank()) {
-                _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_missing_api_key)))
-                return@launch
+            val requestedTargetId = uiState.value.activeTarget?.id
+            val executionTarget = when (val res = sendChatMessageUseCase.prepareExecutionTarget(requestedTargetId)) {
+                is ExecutionTargetResolution.Ready -> res.target
+                ExecutionTargetResolution.NoPresetConfigured -> {
+                    _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_no_preset)))
+                    return@launch
+                }
+                ExecutionTargetResolution.MissingModelId -> {
+                    _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_missing_model)))
+                    return@launch
+                }
+                ExecutionTargetResolution.MissingApiKey -> {
+                    _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_missing_api_key)))
+                    return@launch
+                }
             }
             sendChatMessageUseCase.retryAssistantMessage(
                 assistantMessageId = assistantMessageId,
-                preset = preset,
-                apiKey = apiKey
+                executionTarget = executionTarget
             )
         }
     }
@@ -632,22 +693,26 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             overlayFlow.value = OverlayState.None
             if (!isUserMessage) {
-                editMessageUseCase(messageId, newText, null, null)
+                editMessageUseCase(messageId, newText, null)
                 return@launch
             }
-            val preset = uiState.value.selectedPreset
-            if (preset == null) {
-                _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_no_preset)))
-                return@launch
+            val requestedTargetId = uiState.value.activeTarget?.id
+            val executionTarget = when (val res = sendChatMessageUseCase.prepareExecutionTarget(requestedTargetId)) {
+                is ExecutionTargetResolution.Ready -> res.target
+                ExecutionTargetResolution.NoPresetConfigured -> {
+                    _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_no_preset)))
+                    return@launch
+                }
+                ExecutionTargetResolution.MissingModelId -> {
+                    _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_missing_model)))
+                    return@launch
+                }
+                ExecutionTargetResolution.MissingApiKey -> {
+                    _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_missing_api_key)))
+                    return@launch
+                }
             }
-            val apiKey = settingsRepository.getApiKey(preset.id).orEmpty()
-            val keyRequired = !(preset.provider == com.iank.im.peek.domain.model.ApiProvider.OPENAI &&
-                preset.customBaseUrlEnabled)
-            if (keyRequired && apiKey.isBlank()) {
-                _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.validation_missing_api_key)))
-                return@launch
-            }
-            editMessageUseCase(messageId, newText, preset, apiKey)
+            editMessageUseCase(messageId, newText, executionTarget)
         }
     }
 
@@ -755,9 +820,26 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun selectTargetForCurrentContext(targetId: String) {
+        viewModelScope.launch {
+            val activeConvId = activeConversationIdFlow.value
+            if (activeConvId != null) {
+                // Manually switching target inside an active conversation updates only this conversation's bound target
+                conversationRepository.updateConversationActiveTarget(activeConvId, targetId)
+            } else {
+                // Before first message is sent in a new conversation, override for this new conversation session
+                newConversationTargetOverrideIdFlow.value = targetId
+            }
+            if (overlayFlow.value is OverlayState.PresetMenu) {
+                overlayFlow.value = OverlayState.None
+            }
+        }
+    }
+
     fun selectPreset(presetId: String) {
         viewModelScope.launch {
             settingsRepository.selectPreset(presetId)
+            newConversationTargetOverrideIdFlow.value = null
             if (overlayFlow.value is OverlayState.PresetMenu) {
                 overlayFlow.value = OverlayState.None
             }
@@ -775,10 +857,34 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun clonePreset(clonedPreset: ApiPreset, sourcePresetId: String, currentEditorApiKey: String) {
+        viewModelScope.launch {
+            val keyToCopy = currentEditorApiKey.ifBlank {
+                settingsRepository.getApiKey(sourcePresetId).orEmpty()
+            }
+            settingsRepository.upsertPreset(clonedPreset, keyToCopy)
+            _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.settings_preset_cloned)))
+        }
+    }
+
     fun deletePreset(presetId: String) {
         viewModelScope.launch {
             settingsRepository.deletePreset(presetId)
             _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.settings_preset_deleted)))
+        }
+    }
+
+    fun saveModelGroup(group: ModelGroup) {
+        viewModelScope.launch {
+            settingsRepository.upsertModelGroup(group)
+            _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.settings_group_saved)))
+        }
+    }
+
+    fun deleteModelGroup(groupId: String) {
+        viewModelScope.launch {
+            settingsRepository.deleteModelGroup(groupId)
+            _events.emit(UiEvent.ShowSnackbar(UiText.StringResource(R.string.settings_group_deleted)))
         }
     }
 
