@@ -34,6 +34,7 @@ import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -100,6 +101,7 @@ fun WearChatScreen(
     viewModel: WearChatViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentInputMode by viewModel.defaultInputMethod.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val listState = rememberScalingLazyListState()
     val focusRequester = rememberActiveFocusRequester()
@@ -129,15 +131,17 @@ fun WearChatScreen(
         }
     }
 
-    fun launchTextInput() {
+    val launchForMode by rememberUpdatedState { mode: WearInputMode ->
+        val intent = WearInputLauncher.createIntentForMode(
+            mode = mode,
+            textHint = textPromptHint,
+            voicePrompt = voicePromptLabel
+        )
         runCatching {
-            textInputLauncher.launch(WearInputLauncher.createTextRemoteInputIntent(textPromptHint))
-        }
-    }
-
-    fun launchVoiceInput() {
-        runCatching {
-            voiceInputLauncher.launch(WearInputLauncher.createVoiceRecognizerIntent(voicePromptLabel))
+            when (mode) {
+                WearInputMode.TEXT_KEYBOARD -> textInputLauncher.launch(intent)
+                WearInputMode.VOICE_FIRST -> voiceInputLauncher.launch(intent)
+            }
         }
     }
 
@@ -329,18 +333,18 @@ fun WearChatScreen(
                 WearChatInputBar(
                     isGenerating = uiState.isGenerating,
                     isSendingTurn = uiState.isSendingTurn,
-                    inputMode = uiState.inputMode,
+                    inputMode = currentInputMode,
                     onPrimaryClick = {
-                        when (uiState.inputMode) {
-                            WearInputMode.TEXT_KEYBOARD -> launchTextInput()
-                            WearInputMode.VOICE_FIRST -> launchVoiceInput()
-                        }
+                        val activeMode = viewModel.defaultInputMethod.value
+                        launchForMode(activeMode)
                     },
                     onSecondaryClick = {
-                        when (uiState.inputMode) {
-                            WearInputMode.TEXT_KEYBOARD -> launchVoiceInput()
-                            WearInputMode.VOICE_FIRST -> launchTextInput()
+                        val activeMode = viewModel.defaultInputMethod.value
+                        val secondaryMode = when (activeMode) {
+                            WearInputMode.TEXT_KEYBOARD -> WearInputMode.VOICE_FIRST
+                            WearInputMode.VOICE_FIRST -> WearInputMode.TEXT_KEYBOARD
                         }
+                        launchForMode(secondaryMode)
                     },
                     onStopGeneration = viewModel::cancelGeneration
                 )

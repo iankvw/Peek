@@ -14,9 +14,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
@@ -56,10 +58,18 @@ class WearChatViewModel @Inject constructor(
     private val initialConversationId: String? =
         savedStateHandle.get<String>("conversationId")?.takeIf { it.isNotBlank() }
 
+    val defaultInputMethod: StateFlow<WearInputMode> = settingsDataStore.defaultInputMethod
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = settingsDataStore.defaultInputMethod.value
+        )
+
     private val _uiState = MutableStateFlow(
         WearChatUiState(
             conversationId = initialConversationId,
-            isLoadingInitial = initialConversationId != null
+            isLoadingInitial = initialConversationId != null,
+            inputMode = settingsDataStore.defaultInputMethod.value
         )
     )
     val uiState: StateFlow<WearChatUiState> = _uiState.asStateFlow()
@@ -80,7 +90,7 @@ class WearChatViewModel @Inject constructor(
 
     private fun observeInputMode() {
         viewModelScope.launch {
-            settingsDataStore.inputMode.collect { mode ->
+            defaultInputMethod.collect { mode ->
                 _uiState.update { it.copy(inputMode = mode) }
             }
         }

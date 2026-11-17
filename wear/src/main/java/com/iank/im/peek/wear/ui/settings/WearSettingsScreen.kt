@@ -345,8 +345,7 @@ fun WearQualitySettingsScreen(
                     secondaryLabel = null,
                     selected = isSelected,
                     onClick = {
-                        viewModel.selectImageQuality(quality)
-                        onSelected()
+                        viewModel.selectImageQuality(quality, onSelected)
                     }
                 )
             }
@@ -484,8 +483,7 @@ fun WearInputSettingsScreen(
                     secondaryLabel = null,
                     selected = isSelected,
                     onClick = {
-                        viewModel.selectInputMode(mode)
-                        onSelected()
+                        viewModel.selectInputMode(mode, onSelected)
                     }
                 )
             }

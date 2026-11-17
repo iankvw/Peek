@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.concurrent.Executors
@@ -47,8 +48,19 @@ class WearSettingsViewModel @Inject constructor(
     private val bridgeClient: WearPhoneBridgeClient
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(WearSettingsUiState())
+    val defaultInputMethod: StateFlow<WearInputMode> = settingsDataStore.defaultInputMethod
+
+    private val _uiState = MutableStateFlow(
+        WearSettingsUiState(
+            imageQuality = settingsDataStore.imageQuality.value,
+            inputMode = settingsDataStore.defaultInputMethod.value,
+            targets = bridgeClient.syncedConfig.value.targets,
+            selectedTargetId = bridgeClient.syncedConfig.value.selectedTargetId
+        )
+    )
     val uiState: StateFlow<WearSettingsUiState> = _uiState.asStateFlow()
+
+    private var isUpdatingLocalPreference = false
 
     init {
         viewModelScope.launch {
@@ -57,32 +69,64 @@ class WearSettingsViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 settingsDataStore.imageQuality,
-                settingsDataStore.inputMode,
+                settingsDataStore.defaultInputMethod,
                 bridgeClient.syncedConfig
             ) { quality, inputMode, syncedConfig ->
                 Triple(quality, inputMode, syncedConfig)
-            }.collect { (quality, inputMode, syncedConfig) ->
-                _uiState.update { state ->
-                    state.copy(
-                        imageQuality = quality,
-                        inputMode = inputMode,
-                        targets = syncedConfig.targets,
-                        selectedTargetId = syncedConfig.selectedTargetId
-                    )
+            }
+                .distinctUntilChanged()
+                .collect { (quality, inputMode, syncedConfig) ->
+                    _uiState.update { state ->
+                        state.copy(
+                            imageQuality = quality,
+                            inputMode = inputMode,
+                            targets = syncedConfig.targets,
+                            selectedTargetId = syncedConfig.selectedTargetId
+                        )
+                    }
                 }
+        }
+    }
+
+    fun selectImageQuality(
+        quality: WearImageQuality,
+        onCompleted: (() -> Unit)? = null
+    ) {
+        if (isUpdatingLocalPreference) return
+        isUpdatingLocalPreference = true
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(imageQuality = quality) }
+                settingsDataStore.setImageQuality(quality)
+                onCompleted?.invoke()
+            } finally {
+                isUpdatingLocalPreference = false
             }
         }
     }
 
-    fun selectImageQuality(quality: WearImageQuality) {
+    fun selectInputMode(
+        mode: WearInputMode,
+        onCompleted: (() -> Unit)? = null
+    ) {
+        if (isUpdatingLocalPreference) return
+        isUpdatingLocalPreference = true
         viewModelScope.launch {
-            settingsDataStore.setImageQuality(quality)
+            try {
+                _uiState.update { it.copy(inputMode = mode) }
+                settingsDataStore.setDefaultInputMethod(mode)
+                onCompleted?.invoke()
+            } finally {
+                isUpdatingLocalPreference = false
+            }
         }
     }
 
-    fun selectInputMode(mode: WearInputMode) {
+    fun toggleInputMode(onCompleted: (() -> Unit)? = null) {
         viewModelScope.launch {
-            settingsDataStore.setInputMode(mode)
+            val next = settingsDataStore.toggleDefaultInputMethod()
+            _uiState.update { it.copy(inputMode = next) }
+            onCompleted?.invoke()
         }
     }
 

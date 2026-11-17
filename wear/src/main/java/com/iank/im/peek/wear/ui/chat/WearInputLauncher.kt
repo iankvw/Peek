@@ -4,9 +4,19 @@ import android.app.RemoteInput
 import android.content.Intent
 import android.speech.RecognizerIntent
 import androidx.wear.input.RemoteInputIntentHelper
+import com.iank.im.peek.wear.domain.model.WearInputMode
 
 object WearInputLauncher {
     private const val KEY_PROMPT_TEXT = "peek_wear_prompt_text"
+
+    fun createIntentForMode(
+        mode: WearInputMode,
+        textHint: String,
+        voicePrompt: String
+    ): Intent = when (mode) {
+        WearInputMode.TEXT_KEYBOARD -> createTextRemoteInputIntent(textHint)
+        WearInputMode.VOICE_FIRST -> createVoiceRecognizerIntent(voicePrompt)
+    }
 
     fun createTextRemoteInputIntent(hint: String): Intent {
         val remoteInputs = listOf(
