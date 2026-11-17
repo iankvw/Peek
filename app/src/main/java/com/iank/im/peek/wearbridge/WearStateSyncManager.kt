@@ -133,7 +133,7 @@ class WearStateSyncManager @Inject constructor(
             conversationRepository.observeMessages(conversationId).collect { messages ->
                 val latestAssistant = messages.lastOrNull { it.role == MessageRole.ASSISTANT }
                     ?: return@collect
-                val isGenerating = conversationId in activeSendRegistry.activeConversationIds
+                val isGenerating = activeSendRegistry.activeConversationIds.value.contains(conversationId)
                 val signature = buildString {
                     append(latestAssistant.id)
                     append('|')
@@ -168,7 +168,7 @@ class WearStateSyncManager @Inject constructor(
     suspend fun notifyMessageUpdated(conversationId: String, messageId: String) {
         val message = conversationRepository.getMessage(messageId) ?: return
         val conv = conversationRepository.getConversation(conversationId)
-        val isGenerating = conversationId in activeSendRegistry.activeConversationIds
+        val isGenerating = activeSendRegistry.activeConversationIds.value.contains(conversationId)
         val event = WearChatUpdateEvent(
             conversationId = conversationId,
             conversationTitle = conv?.title.orEmpty(),
