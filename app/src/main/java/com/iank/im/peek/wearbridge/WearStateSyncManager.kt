@@ -141,6 +141,10 @@ class WearStateSyncManager @Inject constructor(
             }.collect { (messages, isActiveOnPhone) ->
                 val latestAssistant = messages.lastOrNull { it.role == MessageRole.ASSISTANT }
                     ?: return@collect
+                if (!isActiveOnPhone && latestAssistant.status == MessageStatus.LOADING) {
+                    // Skip transient mismatch right after ActiveSendRegistry unregister before final Room commit emits
+                    return@collect
+                }
                 val isGenerating = isActiveOnPhone && latestAssistant.status == MessageStatus.LOADING
                 val signature = buildString {
                     append(latestAssistant.id)

@@ -34,7 +34,10 @@ import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -157,6 +160,10 @@ fun WearChatScreen(
         }
     }
 
+    var hasCompletedInitialScroll by remember(uiState.conversationId) {
+        mutableStateOf(uiState.conversationId == null)
+    }
+
     // Auto-scroll to latest message + input bar on initial load or newly sent turn
     LaunchedEffect(uiState.scrollToBottomTick) {
         if (uiState.scrollToBottomTick > 0) {
@@ -164,6 +171,7 @@ fun WearChatScreen(
             if (total > 0) {
                 listState.scrollToItem((total - 1).coerceAtLeast(0))
             }
+            hasCompletedInitialScroll = true
         }
     }
 
@@ -179,11 +187,17 @@ fun WearChatScreen(
         }
     }
 
-    // Load older messages when scrolling near the top of the list
-    LaunchedEffect(listState, uiState.hasOlder) {
+    // Load older messages when scrolling near the top of the list (only after initial bottom scroll completes)
+    LaunchedEffect(listState, uiState.hasOlder, hasCompletedInitialScroll) {
+        if (!hasCompletedInitialScroll) return@LaunchedEffect
         snapshotFlow { listState.centerItemIndex }
             .distinctUntilChanged()
-            .filter { idx -> idx <= 2 && uiState.hasOlder && !uiState.isLoadingOlder }
+            .filter { idx ->
+                idx <= 2 &&
+                    uiState.hasOlder &&
+                    !uiState.isLoadingOlder &&
+                    !uiState.isLoadingInitial
+            }
             .collect {
                 viewModel.loadOlderMessages()
             }

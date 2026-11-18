@@ -154,14 +154,19 @@ class WearChatViewModel @Inject constructor(
         reconcileJob?.cancel()
         val isActiveOnPhone = update.isGenerating &&
             update.updatedMessage.status == WearMessageStatus.LOADING
+        var shouldScheduleReconcile = false
         _uiState.update { state ->
             val updatedList = mergeMessages(state.messages, listOf(update.updatedMessage))
             val isGenerating = deriveIsGenerating(updatedList, isActiveOnPhone)
+            shouldScheduleReconcile = !update.isGenerating && isGenerating
             state.copy(
                 conversationTitle = update.conversationTitle.ifBlank { state.conversationTitle },
                 messages = updatedList,
                 isGenerating = isGenerating
             )
+        }
+        if (shouldScheduleReconcile) {
+            scheduleReconcile(update.conversationId)
         }
         ensureThumbnailsForMessages(listOf(update.updatedMessage))
     }
@@ -215,7 +220,14 @@ class WearChatViewModel @Inject constructor(
             byId[msg.id] = msg
         }
         for (msg in incoming) {
-            byId[msg.id] = msg
+            val prev = byId[msg.id]
+            val isStaleLoadingRegression = prev != null &&
+                prev.status != WearMessageStatus.LOADING &&
+                msg.status == WearMessageStatus.LOADING &&
+                msg.textContent.isBlank()
+            if (!isStaleLoadingRegression) {
+                byId[msg.id] = msg
+            }
         }
         return byId.values.sortedBy { it.position }
     }
@@ -405,6 +417,8 @@ class WearChatViewModel @Inject constructor(
     fun retryMessage(assistantMessageId: String) {
         val convId = _uiState.value.conversationId ?: return
         viewModelScope.launch {
+            val previousMessages = _uiState.value.messages
+            val previousTarget = previousMessages.firstOrNull { it.id == assistantMessageId }
             _uiState.update { state ->
                 val updatedMsgs = state.messages.map { msg ->
                     if (msg.id == assistantMessageId) {
@@ -426,8 +440,20 @@ class WearChatViewModel @Inject constructor(
             val result = bridgeClient.retryTurn(convId, assistantMessageId)
             if (!result.success) {
                 _uiState.update { state ->
+                    val rolledBackMessages = if (previousTarget != null) {
+                        state.messages.map { msg ->
+                            if (msg.id == assistantMessageId && msg.status == WearMessageStatus.LOADING) {
+                                previousTarget
+                            } else {
+                                msg
+                            }
+                        }
+                    } else {
+                        previousMessages
+                    }
                     state.copy(
-                        isGenerating = deriveIsGenerating(state.messages, isActiveOnPhone = false),
+                        messages = rolledBackMessages,
+                        isGenerating = deriveIsGenerating(rolledBackMessages, isActiveOnPhone = false),
                         errorBannerCode = result.errorCode ?: "DISCONNECTED"
                     )
                 }

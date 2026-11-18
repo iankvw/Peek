@@ -5,6 +5,7 @@ import android.content.Intent
 import android.speech.RecognizerIntent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -92,23 +94,43 @@ fun WearTextInputScreen(
     onCancel: () -> Unit
 ) {
     var inputText by rememberSaveable { mutableStateOf("") }
+    var isHandled by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
-    val canSend = inputText.isNotBlank()
+    val canSend = inputText.isNotBlank() && !isHandled
 
-    fun submitCurrent() {
-        val trimmed = inputText.trim()
-        if (trimmed.isEmpty()) return
-        keyboardController?.hide()
-        onSubmit(trimmed)
-    }
-
-    LaunchedEffect(Unit) {
-        delay(80L)
+    fun requestInputFocusAndKeyboard() {
         runCatching {
             focusRequester.requestFocus()
             keyboardController?.show()
         }
+    }
+
+    fun submitCurrent() {
+        if (isHandled) return
+        val trimmed = inputText.trim()
+        if (trimmed.isEmpty()) return
+        isHandled = true
+        keyboardController?.hide()
+        onSubmit(trimmed)
+    }
+
+    fun cancelCurrent() {
+        if (isHandled) return
+        isHandled = true
+        keyboardController?.hide()
+        onCancel()
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            keyboardController?.hide()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        delay(80L)
+        requestInputFocusAndKeyboard()
     }
 
     Column(
@@ -128,6 +150,7 @@ fun WearTextInputScreen(
                 .clip(RoundedCornerShape(16.dp))
                 .background(PeekWearSurfaceContainer)
                 .border(1.dp, PeekWearPrimary.copy(alpha = 0.7f), RoundedCornerShape(16.dp))
+                .clickable(onClick = ::requestInputFocusAndKeyboard)
                 .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
             if (inputText.isEmpty()) {
@@ -162,10 +185,8 @@ fun WearTextInputScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Button(
-                onClick = {
-                    keyboardController?.hide()
-                    onCancel()
-                },
+                onClick = { cancelCurrent() },
+                enabled = !isHandled,
                 colors = ButtonDefaults.buttonColors(
                     backgroundColor = PeekWearSurfaceContainerHigh,
                     contentColor = PeekWearOnBackground
