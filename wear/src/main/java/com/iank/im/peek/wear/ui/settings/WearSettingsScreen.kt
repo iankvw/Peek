@@ -417,7 +417,7 @@ fun WearTargetSettingsScreen(
                     items = uiState.targets,
                     key = { it.id }
                 ) { target ->
-                    val isSelected = target.id == uiState.selectedTargetId
+                    val isSelected = target.id == uiState.selectedTarget?.id
                     val title = if (target.isGroup) {
                         "[$groupBadge] ${target.displayName}"
                     } else {

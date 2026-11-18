@@ -24,11 +24,14 @@ import com.iank.im.peek.wear.domain.model.WearSendTurnResult
 import com.iank.im.peek.wear.domain.model.WearSimpleResult
 import com.iank.im.peek.wear.domain.model.WearSyncedConfig
 import com.iank.im.peek.wear.domain.model.WearTargetItem
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,10 +39,12 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -47,6 +52,7 @@ import java.io.File
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -67,11 +73,18 @@ class WearPhoneBridgeClient @Inject constructor(
     private val thumbnailSemaphore = Semaphore(MAX_CONCURRENT_THUMBNAILS)
     private val inFlightThumbnails = ConcurrentHashMap<String, Deferred<File?>>()
     private val inFlightFullImages = ConcurrentHashMap<String, Deferred<File?>>()
+    private val deferredWaiters = ConcurrentHashMap<Deferred<File?>, AtomicInteger>()
 
-    private data class PendingChannelTransfer(
+    private class PendingChannelTransfer(
         val cacheKey: String,
         val deferred: CompletableDeferred<File?>
-    )
+    ) {
+        @Volatile
+        var channel: ChannelClient.Channel? = null
+
+        @Volatile
+        var streamJob: Job? = null
+    }
 
     private val pendingChannelTransfers = ConcurrentHashMap<String, PendingChannelTransfer>()
 
@@ -176,13 +189,17 @@ class WearPhoneBridgeClient @Inject constructor(
         }
     }
 
-    fun handleSyncedConfigJsonFromService(configJson: String) {
-        applySyncedConfigJson(configJson)
-    }
-
     fun handleIncomingChannel(channel: ChannelClient.Channel) {
-        val transfer = pendingChannelTransfers.remove(channel.path) ?: return
-        applicationScope.launch(Dispatchers.IO) {
+        val transfer = pendingChannelTransfers[channel.path]
+        if (transfer == null) {
+            // Orphan channel (e.g. opened after request timeout/cancellation); close immediately to prevent leak
+            applicationScope.launch(Dispatchers.IO) {
+                runCatching { channelClient.close(channel).await() }
+            }
+            return
+        }
+        transfer.channel = channel
+        val job = applicationScope.launch(Dispatchers.IO) {
             try {
                 val inputStream = channelClient.getInputStream(channel).await()
                 val savedFile = inputStream.use { stream ->
@@ -193,9 +210,13 @@ class WearPhoneBridgeClient @Inject constructor(
                 Log.w(TAG, "Failed receiving channel stream ${channel.path}", t)
                 transfer.deferred.complete(null)
             } finally {
-                runCatching { channelClient.close(channel).await() }
+                pendingChannelTransfers.remove(channel.path, transfer)
+                withContext(NonCancellable) {
+                    runCatching { channelClient.close(channel).await() }
+                }
             }
         }
+        transfer.streamJob = job
     }
 
     suspend fun fetchConversationsPage(
@@ -319,25 +340,30 @@ class WearPhoneBridgeClient @Inject constructor(
 
     suspend fun selectDefaultTarget(targetId: String): WearSimpleResult {
         val request = WearSelectTargetRequest(targetId = targetId)
-        return sendSimpleRpc(
+        val result = sendSimpleRpc(
             path = WearBridgeConstants.PATH_RPC_SETTINGS_SELECT_TARGET,
             payload = json.encodeToString(request).encodeToByteArray()
         )
+        if (result.success) {
+            _syncedConfig.update { it.copy(selectedTargetId = targetId) }
+        }
+        return result
     }
 
     /**
      * Requests a low-res thumbnail for inline chat bubbles.
      * Throttled by [thumbnailSemaphore] (max 2 concurrent streams) to prevent Bluetooth saturation.
      */
-    suspend fun requestThumbnail(attachmentId: String): File? {
-        imageCache.getThumbnailFile(attachmentId)?.let { return it }
-        return deduplicateInFlight(inFlightThumbnails, attachmentId) {
+    suspend fun requestThumbnail(attachmentId: String, payloadRevision: Int = 0): File? {
+        imageCache.getThumbnailFile(attachmentId, payloadRevision)?.let { return it }
+        val dedupKey = "${attachmentId}_r${payloadRevision}"
+        return deduplicateInFlight(inFlightThumbnails, dedupKey) {
             thumbnailSemaphore.withPermit {
-                imageCache.getThumbnailFile(attachmentId) ?: streamImageFromPhone(
+                imageCache.getThumbnailFile(attachmentId, payloadRevision) ?: streamImageFromPhone(
                     attachmentId = attachmentId,
                     kind = WearBridgeConstants.IMAGE_KIND_THUMBNAIL,
                     qualityPreset = WearImageQuality.BALANCED_2000.protocolValue,
-                    cacheKey = imageCache.thumbnailKey(attachmentId)
+                    cacheKey = imageCache.thumbnailKey(attachmentId, payloadRevision)
                 )
             }
         }
@@ -347,15 +373,19 @@ class WearPhoneBridgeClient @Inject constructor(
      * Requests a high-resolution image when the user taps a thumbnail to open the viewer.
      * Bypasses [thumbnailSemaphore] so user-initiated viewer requests have immediate priority.
      */
-    suspend fun requestFullImage(attachmentId: String, quality: WearImageQuality): File? {
-        imageCache.getFullImageFile(attachmentId, quality)?.let { return it }
-        val dedupKey = "${attachmentId}_${quality.name}"
+    suspend fun requestFullImage(
+        attachmentId: String,
+        quality: WearImageQuality,
+        payloadRevision: Int = 0
+    ): File? {
+        imageCache.getFullImageFile(attachmentId, quality, payloadRevision)?.let { return it }
+        val dedupKey = "${attachmentId}_r${payloadRevision}_${quality.name}"
         return deduplicateInFlight(inFlightFullImages, dedupKey) {
-            imageCache.getFullImageFile(attachmentId, quality) ?: streamImageFromPhone(
+            imageCache.getFullImageFile(attachmentId, quality, payloadRevision) ?: streamImageFromPhone(
                 attachmentId = attachmentId,
                 kind = WearBridgeConstants.IMAGE_KIND_FULL,
                 qualityPreset = quality.protocolValue,
-                cacheKey = imageCache.fullImageKey(attachmentId, quality)
+                cacheKey = imageCache.fullImageKey(attachmentId, quality, payloadRevision)
             )
         }
     }
@@ -365,19 +395,35 @@ class WearPhoneBridgeClient @Inject constructor(
         key: String,
         block: suspend () -> File?
     ): File? {
-        map[key]?.let { return it.await() }
-        val newDeferred = applicationScope.async(start = CoroutineStart.LAZY) {
+        lateinit var newDeferred: Deferred<File?>
+        newDeferred = applicationScope.async(start = CoroutineStart.LAZY) {
             try {
                 block()
             } finally {
-                map.remove(key)
+                map.remove(key, newDeferred)
+                deferredWaiters.remove(newDeferred)
             }
         }
         val active = map.putIfAbsent(key, newDeferred) ?: newDeferred
+        val waiterCounter = deferredWaiters.computeIfAbsent(active) { AtomicInteger(0) }
+        waiterCounter.incrementAndGet()
         if (active === newDeferred) {
             newDeferred.start()
+        } else {
+            newDeferred.cancel()
         }
-        return active.await()
+        return try {
+            val result = active.await()
+            waiterCounter.decrementAndGet()
+            result
+        } catch (ce: CancellationException) {
+            if (waiterCounter.decrementAndGet() <= 0) {
+                map.remove(key, active)
+                deferredWaiters.remove(active)
+                active.cancel()
+            }
+            throw ce
+        }
     }
 
     private suspend fun streamImageFromPhone(
@@ -408,8 +454,7 @@ class WearPhoneBridgeClient @Inject constructor(
             }.getOrNull()
         }
         if (ack == null || !ack.accepted) {
-            pendingChannelTransfers.remove(channelPath)
-            deferred.cancel()
+            abortChannelTransfer(channelPath, transfer)
             return null
         }
 
@@ -418,9 +463,25 @@ class WearPhoneBridgeClient @Inject constructor(
                 deferred.await()
             }
         } catch (t: Throwable) {
-            pendingChannelTransfers.remove(channelPath)
-            Log.w(TAG, "Timed out waiting for image channel $channelPath", t)
+            abortChannelTransfer(channelPath, transfer)
+            Log.w(TAG, "Timed out or cancelled waiting for image channel $channelPath", t)
+            if (t is CancellationException && t !is kotlinx.coroutines.TimeoutCancellationException) {
+                throw t
+            }
             null
+        }
+    }
+
+    private suspend fun abortChannelTransfer(
+        channelPath: String,
+        transfer: PendingChannelTransfer
+    ) {
+        pendingChannelTransfers.remove(channelPath, transfer)
+        transfer.deferred.cancel()
+        transfer.streamJob?.cancel()
+        val openChannel = transfer.channel ?: return
+        withContext(NonCancellable + Dispatchers.IO) {
+            runCatching { channelClient.close(openChannel).await() }
         }
     }
 
@@ -514,7 +575,8 @@ class WearPhoneBridgeClient @Inject constructor(
                 originalWidth = att.originalWidth,
                 originalHeight = att.originalHeight,
                 originalMimeType = att.originalMimeType,
-                isTextReplaced = att.isTextReplaced
+                isTextReplaced = att.isTextReplaced,
+                payloadRevision = att.payloadRevision
             )
         }
     )

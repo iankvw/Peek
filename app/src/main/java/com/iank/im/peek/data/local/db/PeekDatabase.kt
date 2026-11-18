@@ -43,6 +43,20 @@ abstract class PeekDatabase : RoomDatabase() {
     companion object {
         const val DATABASE_NAME = "peek_database"
 
+        val MIGRATION_1_2: Migration = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE conversations ADD COLUMN activeTargetId TEXT")
+            }
+        }
+
+        val MIGRATION_2_3: Migration = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE messages ADD COLUMN servedGroupName TEXT")
+                db.execSQL("ALTER TABLE messages ADD COLUMN servedPresetName TEXT")
+                db.execSQL("ALTER TABLE messages ADD COLUMN servedModelName TEXT")
+            }
+        }
+
         val MIGRATION_3_4: Migration = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE messages ADD COLUMN isReported INTEGER NOT NULL DEFAULT 0")

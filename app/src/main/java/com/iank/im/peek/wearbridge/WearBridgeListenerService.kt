@@ -4,10 +4,13 @@ import android.util.Log
 import com.google.android.gms.tasks.Task
 import com.google.android.gms.tasks.TaskCompletionSource
 import com.google.android.gms.wearable.WearableListenerService
+import com.iank.im.peek.data.local.maintenance.StartupMaintenance
 import com.iank.im.peek.di.ApplicationScope
 import com.iank.im.peek.domain.model.MessageRole
+import com.iank.im.peek.domain.model.MessageStatus
 import com.iank.im.peek.domain.repository.ConversationRepository
 import com.iank.im.peek.domain.repository.SettingsRepository
+import com.iank.im.peek.domain.usecase.ActiveSendRegistry
 import com.iank.im.peek.domain.usecase.DeleteConversationUseCase
 import com.iank.im.peek.domain.usecase.ExecutionTargetResolution
 import com.iank.im.peek.domain.usecase.SendChatMessageUseCase
@@ -35,6 +38,12 @@ class WearBridgeListenerService : WearableListenerService() {
     lateinit var deleteConversationUseCase: DeleteConversationUseCase
 
     @Inject
+    lateinit var activeSendRegistry: ActiveSendRegistry
+
+    @Inject
+    lateinit var startupMaintenance: StartupMaintenance
+
+    @Inject
     lateinit var wearStateSyncManager: WearStateSyncManager
 
     @Inject
@@ -53,12 +62,16 @@ class WearBridgeListenerService : WearableListenerService() {
     override fun onCreate() {
         super.onCreate()
         wearStateSyncManager.start()
+        applicationScope.launch {
+            startupMaintenance.runOnStartupOnce()
+        }
     }
 
     override fun onRequest(nodeId: String, path: String, data: ByteArray): Task<ByteArray> {
         val taskSource = TaskCompletionSource<ByteArray>()
         applicationScope.launch(Dispatchers.IO) {
             try {
+                startupMaintenance.runOnStartupOnce()
                 val responseBytes = dispatchRpc(nodeId, path, data)
                 taskSource.setResult(responseBytes)
             } catch (t: Throwable) {
@@ -144,8 +157,7 @@ class WearBridgeListenerService : WearableListenerService() {
 
             WearBridgeConstants.PATH_RPC_CHAT_CANCEL -> {
                 val req = json.decodeFromString<WearCancelTurnRequest>(payloadText)
-                sendChatMessageUseCase.cancelConversationRequest(req.conversationId)
-                json.encodeToString(WearSimpleAckResponse(success = true)).encodeToByteArray()
+                handleCancelTurn(req)
             }
 
             WearBridgeConstants.PATH_RPC_CHAT_REPORT -> {
@@ -273,6 +285,19 @@ class WearBridgeListenerService : WearableListenerService() {
             executionTarget = executionTarget
         )
         wearStateSyncManager.notifyMessageUpdated(req.conversationId, req.assistantMessageId)
+        return json.encodeToString(WearSimpleAckResponse(success = true)).encodeToByteArray()
+    }
+
+    private suspend fun handleCancelTurn(req: WearCancelTurnRequest): ByteArray {
+        sendChatMessageUseCase.cancelConversationRequest(req.conversationId)
+        val loadingMessages = conversationRepository.getMessages(req.conversationId)
+            .filter { it.status == MessageStatus.LOADING }
+        for (msg in loadingMessages) {
+            if (!activeSendRegistry.isMessageActivelySending(msg.id)) {
+                conversationRepository.updateAssistantCancelled(msg.id)
+                wearStateSyncManager.notifyMessageUpdated(req.conversationId, msg.id)
+            }
+        }
         return json.encodeToString(WearSimpleAckResponse(success = true)).encodeToByteArray()
     }
 

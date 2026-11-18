@@ -11,8 +11,13 @@ import com.iank.im.peek.domain.repository.ConversationRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import java.io.File
 import java.io.IOException
 import javax.inject.Inject
@@ -29,6 +34,7 @@ class WearImageStreamHelper @Inject constructor(
     private val wearImageCacheDir: File by lazy {
         File(appContext.cacheDir, CACHE_DIR_NAME).apply { mkdirs() }
     }
+    private val cacheMutex = Mutex()
 
     suspend fun handleImageRequest(
         sourceNodeId: String,
@@ -63,6 +69,7 @@ class WearImageStreamHelper @Inject constructor(
             runCatching {
                 val fileToStream = prepareFileForStreaming(
                     attachmentId = attachment.id,
+                    payloadRevision = attachment.payloadRevision,
                     thumbnailRelPath = attachment.thumbnailRelPath,
                     originalRelPath = attachment.originalRelPath,
                     payloadRelPath = attachment.payloadRelPath,
@@ -71,7 +78,7 @@ class WearImageStreamHelper @Inject constructor(
                     qualityPreset = request.qualityPreset
                 )
                 streamFileOverChannel(sourceNodeId, channelPath, fileToStream)
-                trimCacheIfNeeded()
+                trimCacheIfNeeded(excludeFile = fileToStream)
             }.onFailure { t ->
                 Log.w(TAG, "Failed streaming Wear image request ${request.requestId}", t)
             }
@@ -87,6 +94,7 @@ class WearImageStreamHelper @Inject constructor(
 
     private suspend fun prepareFileForStreaming(
         attachmentId: String,
+        payloadRevision: Int,
         thumbnailRelPath: String,
         originalRelPath: String,
         payloadRelPath: String?,
@@ -96,18 +104,29 @@ class WearImageStreamHelper @Inject constructor(
     ): File {
         if (kind == WearBridgeConstants.IMAGE_KIND_THUMBNAIL) {
             imageStorage.resolveIfExists(thumbnailRelPath)?.let { return it }
-            val thumbCacheFile = File(wearImageCacheDir, "${attachmentId}_thumb.webp")
-            if (thumbCacheFile.exists() && thumbCacheFile.length() > 0L) {
-                return thumbCacheFile
+            val thumbCacheFile = File(wearImageCacheDir, "${attachmentId}_r${payloadRevision}_thumb.webp")
+            cacheMutex.withLock {
+                if (thumbCacheFile.exists() && thumbCacheFile.length() > 0L) {
+                    thumbCacheFile.setLastModified(System.currentTimeMillis())
+                    return thumbCacheFile
+                }
             }
             val originalFile = imageStorage.resolveIfExists(originalRelPath)
                 ?: throw IOException("Original missing for thumbnail $attachmentId")
-            return imagePreprocessor.encodeFileForWearCache(
-                sourceFile = originalFile,
-                destFile = thumbCacheFile,
-                targetMaxSide = ImagePreprocessor.THUMBNAIL_MAX_SIDE_PX,
-                quality = ImagePreprocessor.THUMBNAIL_WEBP_QUALITY
-            )
+            return cacheMutex.withLock {
+                if (thumbCacheFile.exists() && thumbCacheFile.length() > 0L) {
+                    thumbCacheFile.setLastModified(System.currentTimeMillis())
+                    return@withLock thumbCacheFile
+                }
+                imagePreprocessor.encodeFileForWearCache(
+                    sourceFile = originalFile,
+                    destFile = thumbCacheFile,
+                    targetMaxSide = ImagePreprocessor.THUMBNAIL_MAX_SIDE_PX,
+                    quality = ImagePreprocessor.THUMBNAIL_WEBP_QUALITY
+                ).also {
+                    it.setLastModified(System.currentTimeMillis())
+                }
+            }
         }
 
         val targetMaxSide = resolveMaxSideForPreset(qualityPreset)
@@ -115,18 +134,29 @@ class WearImageStreamHelper @Inject constructor(
             imageStorage.resolveIfExists(payloadRelPath)?.let { return it }
         }
 
-        val fullCacheFile = File(wearImageCacheDir, "${attachmentId}_${qualityPreset}.webp")
-        if (fullCacheFile.exists() && fullCacheFile.length() > 0L) {
-            return fullCacheFile
+        val fullCacheFile = File(wearImageCacheDir, "${attachmentId}_r${payloadRevision}_${qualityPreset}.webp")
+        cacheMutex.withLock {
+            if (fullCacheFile.exists() && fullCacheFile.length() > 0L) {
+                fullCacheFile.setLastModified(System.currentTimeMillis())
+                return fullCacheFile
+            }
         }
         val originalFile = imageStorage.resolveIfExists(originalRelPath)
             ?: throw IOException("Original missing for full image $attachmentId")
-        return imagePreprocessor.encodeFileForWearCache(
-            sourceFile = originalFile,
-            destFile = fullCacheFile,
-            targetMaxSide = targetMaxSide,
-            quality = ImagePreprocessor.PAYLOAD_WEBP_QUALITY
-        )
+        return cacheMutex.withLock {
+            if (fullCacheFile.exists() && fullCacheFile.length() > 0L) {
+                fullCacheFile.setLastModified(System.currentTimeMillis())
+                return@withLock fullCacheFile
+            }
+            imagePreprocessor.encodeFileForWearCache(
+                sourceFile = originalFile,
+                destFile = fullCacheFile,
+                targetMaxSide = targetMaxSide,
+                quality = ImagePreprocessor.PAYLOAD_WEBP_QUALITY
+            ).also {
+                it.setLastModified(System.currentTimeMillis())
+            }
+        }
     }
 
     private suspend fun streamFileOverChannel(
@@ -135,22 +165,28 @@ class WearImageStreamHelper @Inject constructor(
         file: File
     ) {
         val channelClient = Wearable.getChannelClient(appContext)
-        val channel = channelClient.openChannel(nodeId, channelPath).await()
+        val channel = withTimeout(CHANNEL_STREAM_TIMEOUT_MS) {
+            channelClient.openChannel(nodeId, channelPath).await()
+        }
         try {
-            val outputStream = channelClient.getOutputStream(channel).await()
-            outputStream.use { out ->
-                file.inputStream().use { input ->
-                    val buffer = ByteArray(STREAM_BUFFER_BYTES)
-                    while (true) {
-                        val read = input.read(buffer)
-                        if (read == -1) break
-                        out.write(buffer, 0, read)
+            withTimeout(CHANNEL_STREAM_TIMEOUT_MS) {
+                val outputStream = channelClient.getOutputStream(channel).await()
+                outputStream.use { out ->
+                    file.inputStream().use { input ->
+                        val buffer = ByteArray(STREAM_BUFFER_BYTES)
+                        while (true) {
+                            val read = input.read(buffer)
+                            if (read == -1) break
+                            out.write(buffer, 0, read)
+                        }
+                        out.flush()
                     }
-                    out.flush()
                 }
             }
         } finally {
-            runCatching { channelClient.close(channel).await() }
+            withContext(NonCancellable) {
+                runCatching { channelClient.close(channel).await() }
+            }
         }
     }
 
@@ -161,16 +197,19 @@ class WearImageStreamHelper @Inject constructor(
         else -> 2000
     }
 
-    private fun trimCacheIfNeeded() {
-        val files = wearImageCacheDir.listFiles()?.filter { it.isFile } ?: return
-        var totalBytes = files.sumOf { it.length() }
-        if (totalBytes <= MAX_CACHE_BYTES) return
-        val sortedOldest = files.sortedBy { it.lastModified() }
-        for (file in sortedOldest) {
-            if (totalBytes <= MAX_CACHE_BYTES) break
-            val len = file.length()
-            if (file.delete()) {
-                totalBytes -= len
+    private suspend fun trimCacheIfNeeded(excludeFile: File? = null) {
+        cacheMutex.withLock {
+            val files = wearImageCacheDir.listFiles()?.filter { it.isFile && !it.name.endsWith(".tmp") } ?: return
+            var totalBytes = files.sumOf { it.length() }
+            if (totalBytes <= MAX_CACHE_BYTES) return
+            val sortedOldest = files.sortedBy { it.lastModified() }
+            for (file in sortedOldest) {
+                if (totalBytes <= MAX_CACHE_BYTES) break
+                if (excludeFile != null && file.absolutePath == excludeFile.absolutePath) continue
+                val len = file.length()
+                if (file.delete()) {
+                    totalBytes -= len
+                }
             }
         }
     }
@@ -180,5 +219,6 @@ class WearImageStreamHelper @Inject constructor(
         private const val CACHE_DIR_NAME = "wear_image_cache"
         private const val STREAM_BUFFER_BYTES = 16 * 1024
         private const val MAX_CACHE_BYTES = 64L * 1024L * 1024L
+        private const val CHANNEL_STREAM_TIMEOUT_MS = 45_000L
     }
 }

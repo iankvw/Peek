@@ -160,19 +160,22 @@ class WearSettingsViewModel @Inject constructor(
                 .addCategory(Intent.CATEGORY_BROWSABLE)
                 .setData(Uri.parse(url))
             val executor = Executors.newSingleThreadExecutor()
-            val helper = RemoteActivityHelper(context.applicationContext, executor)
-            val result = runCatching {
-                helper.startRemoteActivity(remoteIntent).await()
-            }
-            executor.shutdown()
-            _uiState.update {
-                it.copy(
-                    privacyFeedback = if (result.isSuccess) {
-                        PrivacyLaunchFeedback.OPENED_ON_PHONE
-                    } else {
-                        PrivacyLaunchFeedback.FAILED
-                    }
-                )
+            try {
+                val helper = RemoteActivityHelper(context.applicationContext, executor)
+                val result = runCatching {
+                    helper.startRemoteActivity(remoteIntent).await()
+                }
+                _uiState.update {
+                    it.copy(
+                        privacyFeedback = if (result.isSuccess) {
+                            PrivacyLaunchFeedback.OPENED_ON_PHONE
+                        } else {
+                            PrivacyLaunchFeedback.FAILED
+                        }
+                    )
+                }
+            } finally {
+                executor.shutdown()
             }
         }
     }

@@ -100,20 +100,16 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
-    // Wear Compose & Horologist
+    // Wear Compose
     implementation(libs.androidx.wear.compose.foundation)
     implementation(libs.androidx.wear.compose.material)
-    implementation(libs.androidx.wear.compose.material3)
     implementation(libs.androidx.wear.compose.navigation)
-    implementation(libs.androidx.wear.compose.ui.tooling)
-    implementation(libs.horologist.compose.layout)
-    implementation(libs.horologist.compose.material)
+    debugImplementation(libs.androidx.wear.compose.ui.tooling)
 
-    // Wearable Data Layer & Remote Interactions & Input
+    // Wearable Data Layer & Remote Interactions
     implementation(libs.play.services.wearable)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.androidx.wear.remote.interactions)
-    implementation(libs.androidx.wear.input)
     implementation(libs.androidx.concurrent.futures.ktx)
 
     // Local Settings & Serialization & DI & Image

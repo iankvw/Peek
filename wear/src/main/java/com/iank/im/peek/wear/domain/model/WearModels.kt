@@ -42,7 +42,8 @@ data class WearAttachmentItem(
     val originalWidth: Int,
     val originalHeight: Int,
     val originalMimeType: String,
-    val isTextReplaced: Boolean
+    val isTextReplaced: Boolean,
+    val payloadRevision: Int = 0
 )
 
 data class WearMessageItem(

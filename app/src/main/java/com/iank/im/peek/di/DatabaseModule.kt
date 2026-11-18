@@ -27,7 +27,11 @@ object DatabaseModule {
             PeekDatabase::class.java,
             PeekDatabase.DATABASE_NAME
         )
-            .addMigrations(PeekDatabase.MIGRATION_3_4)
+            .addMigrations(
+                PeekDatabase.MIGRATION_1_2,
+                PeekDatabase.MIGRATION_2_3,
+                PeekDatabase.MIGRATION_3_4
+            )
             .build()
     }
 

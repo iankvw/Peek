@@ -16,7 +16,6 @@
     <string name="home_new_conversation">새 대화</string>
     <string name="home_settings">설정</string>
     <string name="home_empty_conversations">아직 대화가 없습니다.</string>
-    <string name="home_checking_phone">휴대폰 연결 확인 중…</string>
     <string name="home_phone_disconnected">대화를 불러오려면 휴대폰을 연결해 주세요.</string>
     <string name="home_delete_dialog_title">대화를 삭제할까요?</string>
     <string name="home_delete_dialog_message">‘%1$s’ 대화를 삭제할까요?</string>
@@ -27,13 +26,9 @@
     <string name="home_no_preset_hint">휴대폰 앱에서 API 프리셋을 먼저 설정해 주세요.</string>
 
     <!-- Chat Screen -->
-    <string name="chat_default_new_title">새 대화</string>
     <string name="chat_target_unconfigured">API 설정 필요</string>
-    <string name="chat_loading_messages">메시지 불러오는 중…</string>
     <string name="chat_loading_older">이전 메시지 불러오는 중…</string>
     <string name="chat_empty_messages">질문을 입력해 대화를 시작하세요.</string>
-    <string name="chat_role_user">나</string>
-    <string name="chat_role_assistant">Peek AI</string>
     <string name="chat_status_thinking">분석 중…</string>
     <string name="chat_status_cancelled">요청이 중지되었습니다.</string>
     <string name="chat_badge_text_replaced">텍스트 요약</string>

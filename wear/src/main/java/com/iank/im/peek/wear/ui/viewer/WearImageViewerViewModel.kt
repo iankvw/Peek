@@ -33,6 +33,7 @@ class WearImageViewerViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val attachmentId: String = checkNotNull(savedStateHandle.get<String>("attachmentId"))
+    private val payloadRevision: Int = savedStateHandle.get<Int>("revision") ?: 0
 
     private val _uiState = MutableStateFlow(WearImageViewerUiState())
     val uiState: StateFlow<WearImageViewerUiState> = _uiState.asStateFlow()
@@ -44,8 +45,8 @@ class WearImageViewerViewModel @Inject constructor(
     fun loadFullImage() {
         viewModelScope.launch {
             val quality = settingsDataStore.getImageQuality()
-            val preview = imageCache.getBestAvailablePreview(attachmentId, quality)
-            val alreadyCachedFull = imageCache.getFullImageFile(attachmentId, quality)
+            val preview = imageCache.getBestAvailablePreview(attachmentId, quality, payloadRevision)
+            val alreadyCachedFull = imageCache.getFullImageFile(attachmentId, quality, payloadRevision)
             if (alreadyCachedFull != null) {
                 _uiState.update {
                     it.copy(
@@ -69,7 +70,7 @@ class WearImageViewerViewModel @Inject constructor(
             }
 
             // Priority request: bypasses background thumbnail semaphore
-            val fetched = bridgeClient.requestFullImage(attachmentId, quality)
+            val fetched = bridgeClient.requestFullImage(attachmentId, quality, payloadRevision)
             _uiState.update { state ->
                 state.copy(
                     fullImageFile = fetched,

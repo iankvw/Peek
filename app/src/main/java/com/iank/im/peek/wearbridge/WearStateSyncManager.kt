@@ -191,6 +191,12 @@ class WearStateSyncManager @Inject constructor(
         pushChatUpdateEvent(event)
     }
 
+    suspend fun notifyAttachmentUpdated(attachmentId: String) {
+        val attachment = conversationRepository.getAttachment(attachmentId) ?: return
+        val message = conversationRepository.getMessage(attachment.messageId) ?: return
+        notifyMessageUpdated(message.conversationId, message.id)
+    }
+
     suspend fun resolveTargetDisplayName(targetId: String?): String? {
         val presets = settingsRepository.getPresets()
         val groups = settingsRepository.getModelGroups()
@@ -255,7 +261,8 @@ class WearStateSyncManager @Inject constructor(
         originalWidth = originalWidth,
         originalHeight = originalHeight,
         originalMimeType = originalMimeType,
-        isTextReplaced = isTextReplaced
+        isTextReplaced = isTextReplaced,
+        payloadRevision = payloadRevision
     )
 
     private suspend fun pushSyncedConfig(dto: WearSyncedConfigDto) {

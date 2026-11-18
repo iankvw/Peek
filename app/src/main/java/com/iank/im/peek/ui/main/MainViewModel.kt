@@ -488,7 +488,7 @@ class MainViewModel @Inject constructor(
                         commitAttachmentsUseCase.commitStaged(listOf(pending)).firstOrNull()
                     }
                     if (committed != null) {
-                        conversationRepository.replaceAttachment(
+                        val replaced = conversationRepository.replaceAttachment(
                             attachmentId = attachmentId,
                             newOriginalRelPath = committed.originalRelPath,
                             newMimeType = committed.originalMimeType,
@@ -496,6 +496,9 @@ class MainViewModel @Inject constructor(
                             newHeight = committed.originalHeight,
                             newThumbnailRelPath = committed.thumbnailRelPath
                         )
+                        if (replaced) {
+                            wearStateSyncManager.notifyAttachmentUpdated(attachmentId)
+                        }
                     }
                 }
                 StageImageResult.FileTooLarge -> {
@@ -791,6 +794,7 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             overlayFlow.value = OverlayState.None
             conversationRepository.toggleAttachmentTextReplaced(attachmentId)
+            wearStateSyncManager.notifyAttachmentUpdated(attachmentId)
         }
     }
 

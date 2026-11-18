@@ -24,7 +24,7 @@ object WearRoutes {
     const val HOME = "home"
     const val CHAT = "chat?conversationId={conversationId}"
     const val TEXT_INPUT = "text_input"
-    const val IMAGE_VIEWER = "image_viewer/{attachmentId}"
+    const val IMAGE_VIEWER = "image_viewer/{attachmentId}?revision={revision}"
     const val REPORT_MESSAGE = "report_message/{messageId}"
     const val SETTINGS = "settings"
     const val SETTINGS_QUALITY = "settings/quality"
@@ -39,8 +39,8 @@ object WearRoutes {
         }
     }
 
-    fun imageViewerRoute(attachmentId: String): String =
-        "image_viewer/${Uri.encode(attachmentId)}"
+    fun imageViewerRoute(attachmentId: String, payloadRevision: Int = 0): String =
+        "image_viewer/${Uri.encode(attachmentId)}?revision=$payloadRevision"
 
     fun reportMessageRoute(messageId: String): String =
         "report_message/${Uri.encode(messageId)}"
@@ -89,8 +89,8 @@ fun WearNavGraph() {
                 onOpenTextInput = {
                     navController.navigate(WearRoutes.TEXT_INPUT)
                 },
-                onOpenImageViewer = { attachmentId ->
-                    navController.navigate(WearRoutes.imageViewerRoute(attachmentId))
+                onOpenImageViewer = { attachmentId, payloadRevision ->
+                    navController.navigate(WearRoutes.imageViewerRoute(attachmentId, payloadRevision))
                 },
                 onOpenReportMessage = { messageId ->
                     navController.navigate(WearRoutes.reportMessageRoute(messageId))
@@ -115,7 +115,11 @@ fun WearNavGraph() {
         composable(
             route = WearRoutes.IMAGE_VIEWER,
             arguments = listOf(
-                navArgument("attachmentId") { type = NavType.StringType }
+                navArgument("attachmentId") { type = NavType.StringType },
+                navArgument("revision") {
+                    type = NavType.IntType
+                    defaultValue = 0
+                }
             )
         ) {
             WearImageViewerScreen(

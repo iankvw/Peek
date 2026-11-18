@@ -24,10 +24,7 @@ exifinterface = "1.4.1"
 playServicesWearable = "19.0.0"
 coroutinesPlayServices = "1.10.1"
 wearCompose = "1.4.1"
-wearComposeMaterial3 = "1.0.0-alpha36"
-horologist = "0.6.23"
 wearRemoteInteractions = "1.1.0"
-wearInput = "1.2.0-alpha02"
 coreSplashscreen = "1.0.1"
 
 [libraries]
@@ -80,13 +77,9 @@ play-services-wearable = { group = "com.google.android.gms", name = "play-servic
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutinesPlayServices" }
 androidx-wear-compose-foundation = { group = "androidx.wear.compose", name = "compose-foundation", version.ref = "wearCompose" }
 androidx-wear-compose-material = { group = "androidx.wear.compose", name = "compose-material", version.ref = "wearCompose" }
-androidx-wear-compose-material3 = { group = "androidx.wear.compose", name = "compose-material3", version.ref = "wearComposeMaterial3" }
 androidx-wear-compose-navigation = { group = "androidx.wear.compose", name = "compose-navigation", version.ref = "wearCompose" }
 androidx-wear-compose-ui-tooling = { group = "androidx.wear.compose", name = "compose-ui-tooling", version.ref = "wearCompose" }
-horologist-compose-layout = { group = "com.google.android.horologist", name = "horologist-compose-layout", version.ref = "horologist" }
-horologist-compose-material = { group = "com.google.android.horologist", name = "horologist-compose-material", version.ref = "horologist" }
 androidx-wear-remote-interactions = { group = "androidx.wear", name = "wear-remote-interactions", version.ref = "wearRemoteInteractions" }
-androidx-wear-input = { group = "androidx.wear", name = "wear-input", version.ref = "wearInput" }
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }
 
 [plugins]

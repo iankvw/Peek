@@ -102,7 +102,7 @@ fun WearChatScreen(
     submittedText: String? = null,
     onConsumeSubmittedText: () -> Unit = {},
     onOpenTextInput: () -> Unit,
-    onOpenImageViewer: (String) -> Unit,
+    onOpenImageViewer: (String, Int) -> Unit,
     onOpenReportMessage: (String) -> Unit,
     viewModel: WearChatViewModel = hiltViewModel()
 ) {
@@ -483,7 +483,7 @@ private fun WearChatMessageItem(
     message: WearMessageItem,
     thumbnailFiles: Map<String, File>,
     isReportedRevealed: Boolean,
-    onTapAttachment: (String) -> Unit,
+    onTapAttachment: (String, Int) -> Unit,
     onRevealReported: () -> Unit,
     onLongPressAssistant: () -> Unit,
     onRetry: () -> Unit,
@@ -523,7 +523,7 @@ private fun WearChatMessageItem(
                             WearThumbnailTile(
                                 attachment = att,
                                 file = thumbnailFiles[att.id],
-                                onClick = { onTapAttachment(att.id) }
+                                onClick = { onTapAttachment(att.id, att.payloadRevision) }
                             )
                         }
                     }

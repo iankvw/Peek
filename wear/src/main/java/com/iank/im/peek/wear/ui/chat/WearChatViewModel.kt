@@ -306,13 +306,14 @@ class WearChatViewModel @Inject constructor(
         if (attachments.isEmpty()) return
 
         val immediateCached = mutableMapOf<String, File>()
-        val toFetch = mutableListOf<String>()
+        val toFetch = mutableListOf<Pair<String, Int>>()
         for (att in attachments) {
-            val cached = imageCache.getThumbnailFile(att.id)
+            val revKey = "${att.id}_r${att.payloadRevision}"
+            val cached = imageCache.getThumbnailFile(att.id, att.payloadRevision)
             if (cached != null) {
                 immediateCached[att.id] = cached
-            } else if (requestedThumbIds.add(att.id)) {
-                toFetch += att.id
+            } else if (requestedThumbIds.add(revKey)) {
+                toFetch += (att.id to att.payloadRevision)
             }
         }
         if (immediateCached.isNotEmpty()) {
@@ -320,15 +321,21 @@ class WearChatViewModel @Inject constructor(
                 state.copy(thumbnailFiles = state.thumbnailFiles + immediateCached)
             }
         }
-        for (attachmentId in toFetch) {
+        for ((attachmentId, payloadRevision) in toFetch) {
+            val revKey = "${attachmentId}_r${payloadRevision}"
             viewModelScope.launch {
-                val file = bridgeClient.requestThumbnail(attachmentId)
-                if (file != null) {
-                    _uiState.update { state ->
-                        state.copy(thumbnailFiles = state.thumbnailFiles + (attachmentId to file))
+                try {
+                    val file = bridgeClient.requestThumbnail(attachmentId, payloadRevision)
+                    if (file != null) {
+                        _uiState.update { state ->
+                            state.copy(thumbnailFiles = state.thumbnailFiles + (attachmentId to file))
+                        }
+                    } else {
+                        requestedThumbIds.remove(revKey)
                     }
-                } else {
-                    requestedThumbIds.remove(attachmentId)
+                } catch (ce: kotlinx.coroutines.CancellationException) {
+                    requestedThumbIds.remove(revKey)
+                    throw ce
                 }
             }
         }
