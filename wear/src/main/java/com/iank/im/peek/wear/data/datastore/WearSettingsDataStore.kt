@@ -26,7 +26,7 @@ import javax.inject.Singleton
 @Singleton
 class WearSettingsDataStore @Inject constructor(
     @param:ApplicationContext context: Context,
-    @param:ApplicationScope applicationScope: CoroutineScope
+    @param:ApplicationScope private val applicationScope: CoroutineScope
 ) {
     private val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
         scope = applicationScope,
