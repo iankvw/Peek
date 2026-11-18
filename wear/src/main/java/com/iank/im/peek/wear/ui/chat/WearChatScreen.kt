@@ -96,6 +96,9 @@ import java.io.File
 
 @Composable
 fun WearChatScreen(
+    submittedText: String? = null,
+    onConsumeSubmittedText: () -> Unit = {},
+    onOpenTextInput: () -> Unit,
     onOpenImageViewer: (String) -> Unit,
     onOpenReportMessage: (String) -> Unit,
     viewModel: WearChatViewModel = hiltViewModel()
@@ -106,41 +109,50 @@ fun WearChatScreen(
     val listState = rememberScalingLazyListState()
     val focusRequester = rememberActiveFocusRequester()
 
-    val textPromptHint = stringResource(R.string.chat_input_text_prompt)
     val voicePromptLabel = stringResource(R.string.chat_input_voice_prompt)
 
-    val textInputLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val text = WearInputLauncher.extractTextFromRemoteInput(result.data)
-            if (!text.isNullOrBlank()) {
-                viewModel.sendMessage(text)
-            }
+    LaunchedEffect(submittedText) {
+        val trimmed = submittedText?.trim()
+        if (!trimmed.isNullOrEmpty()) {
+            onConsumeSubmittedText()
+            viewModel.sendMessage(trimmed)
         }
     }
 
     val voiceInputLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val text = WearInputLauncher.extractTextFromVoiceResult(result.data)
-            if (!text.isNullOrBlank()) {
-                viewModel.sendMessage(text)
+        when (result.resultCode) {
+            Activity.RESULT_OK -> {
+                val text = WearInputLauncher.extractTextFromVoiceResult(result.data)
+                if (!text.isNullOrBlank()) {
+                    viewModel.sendMessage(text)
+                }
+            }
+            Activity.RESULT_CANCELED -> {
+                // User dismissed voice recognizer; stay safely on chat screen.
+            }
+            else -> {
+                // Speech recognizer failed unexpectedly; fall back cleanly to in-app keyboard.
+                onOpenTextInput()
             }
         }
     }
 
     val launchForMode by rememberUpdatedState { mode: WearInputMode ->
-        val intent = WearInputLauncher.createIntentForMode(
-            mode = mode,
-            textHint = textPromptHint,
-            voicePrompt = voicePromptLabel
-        )
-        runCatching {
-            when (mode) {
-                WearInputMode.TEXT_KEYBOARD -> textInputLauncher.launch(intent)
-                WearInputMode.VOICE_FIRST -> voiceInputLauncher.launch(intent)
+        when (mode) {
+            WearInputMode.TEXT_KEYBOARD -> onOpenTextInput()
+            WearInputMode.VOICE_FIRST -> {
+                if (!WearInputLauncher.canLaunchVoiceRecognizer(context)) {
+                    onOpenTextInput()
+                } else {
+                    val intent = WearInputLauncher.createVoiceRecognizerIntent(voicePromptLabel)
+                    runCatching {
+                        voiceInputLauncher.launch(intent)
+                    }.onFailure {
+                        onOpenTextInput()
+                    }
+                }
             }
         }
     }

@@ -110,4 +110,5 @@
     <!-- Accessibility -->
     <string name="cd_switch_to_voice">Switch to voice input</string>
     <string name="cd_switch_to_keyboard">Switch to text keyboard</string>
+    <string name="cd_send_message">Send message</string>
 </resources>

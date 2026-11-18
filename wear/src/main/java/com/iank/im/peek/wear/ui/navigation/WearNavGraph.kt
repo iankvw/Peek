@@ -2,13 +2,17 @@ package com.iank.im.peek.wear.ui.navigation
 
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import com.iank.im.peek.wear.ui.chat.WearChatScreen
+import com.iank.im.peek.wear.ui.chat.WearInputLauncher
 import com.iank.im.peek.wear.ui.chat.WearReportScreen
+import com.iank.im.peek.wear.ui.chat.WearTextInputScreen
 import com.iank.im.peek.wear.ui.home.WearHomeScreen
 import com.iank.im.peek.wear.ui.settings.WearInputSettingsScreen
 import com.iank.im.peek.wear.ui.settings.WearQualitySettingsScreen
@@ -19,6 +23,7 @@ import com.iank.im.peek.wear.ui.viewer.WearImageViewerScreen
 object WearRoutes {
     const val HOME = "home"
     const val CHAT = "chat?conversationId={conversationId}"
+    const val TEXT_INPUT = "text_input"
     const val IMAGE_VIEWER = "image_viewer/{attachmentId}"
     const val REPORT_MESSAGE = "report_message/{messageId}"
     const val SETTINGS = "settings"
@@ -72,13 +77,37 @@ fun WearNavGraph() {
                     defaultValue = null
                 }
             )
-        ) {
+        ) { backStackEntry ->
+            val submittedText by backStackEntry.savedStateHandle
+                .getStateFlow<String?>(WearInputLauncher.KEY_SUBMITTED_TEXT, null)
+                .collectAsStateWithLifecycle()
             WearChatScreen(
+                submittedText = submittedText,
+                onConsumeSubmittedText = {
+                    backStackEntry.savedStateHandle[WearInputLauncher.KEY_SUBMITTED_TEXT] = null
+                },
+                onOpenTextInput = {
+                    navController.navigate(WearRoutes.TEXT_INPUT)
+                },
                 onOpenImageViewer = { attachmentId ->
                     navController.navigate(WearRoutes.imageViewerRoute(attachmentId))
                 },
                 onOpenReportMessage = { messageId ->
                     navController.navigate(WearRoutes.reportMessageRoute(messageId))
+                }
+            )
+        }
+
+        composable(WearRoutes.TEXT_INPUT) {
+            WearTextInputScreen(
+                onSubmit = { text ->
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(WearInputLauncher.KEY_SUBMITTED_TEXT, text)
+                    navController.popBackStack()
+                },
+                onCancel = {
+                    navController.popBackStack()
                 }
             )
         }

@@ -110,4 +110,5 @@
     <!-- Accessibility -->
     <string name="cd_switch_to_voice">음성 입력으로 전환</string>
     <string name="cd_switch_to_keyboard">텍스트 키보드로 전환</string>
+    <string name="cd_send_message">메시지 전송</string>
 </resources>

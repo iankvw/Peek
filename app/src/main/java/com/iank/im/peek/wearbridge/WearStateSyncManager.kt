@@ -22,6 +22,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.encodeToString
@@ -130,10 +131,17 @@ class WearStateSyncManager @Inject constructor(
     private fun startObservingConversationUpdates(conversationId: String) {
         val job = applicationScope.launch {
             var lastPushedSignature: String? = null
-            conversationRepository.observeMessages(conversationId).collect { messages ->
+            combine(
+                conversationRepository.observeMessages(conversationId),
+                activeSendRegistry.activeConversationIds
+                    .map { it.contains(conversationId) }
+                    .distinctUntilChanged()
+            ) { messages, isActiveOnPhone ->
+                messages to isActiveOnPhone
+            }.collect { (messages, isActiveOnPhone) ->
                 val latestAssistant = messages.lastOrNull { it.role == MessageRole.ASSISTANT }
                     ?: return@collect
-                val isGenerating = activeSendRegistry.activeConversationIds.value.contains(conversationId)
+                val isGenerating = isActiveOnPhone && latestAssistant.status == MessageStatus.LOADING
                 val signature = buildString {
                     append(latestAssistant.id)
                     append('|')
@@ -168,7 +176,8 @@ class WearStateSyncManager @Inject constructor(
     suspend fun notifyMessageUpdated(conversationId: String, messageId: String) {
         val message = conversationRepository.getMessage(messageId) ?: return
         val conv = conversationRepository.getConversation(conversationId)
-        val isGenerating = activeSendRegistry.activeConversationIds.value.contains(conversationId)
+        val isGenerating = message.status == MessageStatus.LOADING &&
+            activeSendRegistry.activeConversationIds.value.contains(conversationId)
         val event = WearChatUpdateEvent(
             conversationId = conversationId,
             conversationTitle = conv?.title.orEmpty(),
