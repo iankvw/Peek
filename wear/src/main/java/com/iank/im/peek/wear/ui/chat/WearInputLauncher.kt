@@ -31,7 +31,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +42,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.ButtonDefaults
@@ -93,11 +93,11 @@ fun WearTextInputScreen(
     onSubmit: (String) -> Unit,
     onCancel: () -> Unit
 ) {
-    var inputText by rememberSaveable { mutableStateOf("") }
+    var textFieldValue by remember { mutableStateOf(TextFieldValue("")) }
     var isHandled by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
-    val canSend = inputText.isNotBlank() && !isHandled
+    val canSend = textFieldValue.text.isNotBlank() && !isHandled
 
     fun requestInputFocusAndKeyboard() {
         runCatching {
@@ -108,7 +108,7 @@ fun WearTextInputScreen(
 
     fun submitCurrent() {
         if (isHandled) return
-        val trimmed = inputText.trim()
+        val trimmed = textFieldValue.text.trim()
         if (trimmed.isEmpty()) return
         isHandled = true
         keyboardController?.hide()
@@ -135,13 +135,13 @@ fun WearTextInputScreen(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Top),
         modifier = Modifier
             .fillMaxSize()
             .background(PeekWearBackground)
             .imePadding()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 14.dp)
+            .padding(start = 18.dp, end = 18.dp, top = 24.dp, bottom = 14.dp)
     ) {
         Box(
             contentAlignment = Alignment.CenterStart,
@@ -153,16 +153,9 @@ fun WearTextInputScreen(
                 .clickable(onClick = ::requestInputFocusAndKeyboard)
                 .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
-            if (inputText.isEmpty()) {
-                Text(
-                    text = stringResource(R.string.chat_input_text_prompt),
-                    style = MaterialTheme.typography.body2,
-                    color = PeekWearOnSurfaceVariant
-                )
-            }
             BasicTextField(
-                value = inputText,
-                onValueChange = { inputText = it },
+                value = textFieldValue,
+                onValueChange = { textFieldValue = it },
                 textStyle = MaterialTheme.typography.body2.copy(color = PeekWearOnBackground),
                 cursorBrush = SolidColor(PeekWearPrimary),
                 singleLine = true,
@@ -173,6 +166,21 @@ fun WearTextInputScreen(
                 keyboardActions = KeyboardActions(
                     onSend = { submitCurrent() }
                 ),
+                decorationBox = { innerTextField ->
+                    Box(
+                        contentAlignment = Alignment.CenterStart,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (textFieldValue.text.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.chat_input_text_prompt),
+                                style = MaterialTheme.typography.body2,
+                                color = PeekWearOnSurfaceVariant
+                            )
+                        }
+                        innerTextField()
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focusRequester)
