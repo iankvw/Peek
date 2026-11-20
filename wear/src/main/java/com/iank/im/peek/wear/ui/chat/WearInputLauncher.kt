@@ -2,7 +2,15 @@ package com.iank.im.peek.wear.ui.chat
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.speech.RecognizerIntent
+import android.text.InputType
+import android.util.TypedValue
+import android.view.KeyEvent
+import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,37 +26,29 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.widget.doAfterTextChanged
 import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.ButtonDefaults
 import androidx.wear.compose.material.Icon
-import androidx.wear.compose.material.MaterialTheme
-import androidx.wear.compose.material.Text
 import com.iank.im.peek.wear.R
 import com.iank.im.peek.wear.ui.theme.PeekWearBackground
 import com.iank.im.peek.wear.ui.theme.PeekWearOnBackground
@@ -57,7 +57,7 @@ import com.iank.im.peek.wear.ui.theme.PeekWearOnSurfaceVariant
 import com.iank.im.peek.wear.ui.theme.PeekWearPrimary
 import com.iank.im.peek.wear.ui.theme.PeekWearSurfaceContainer
 import com.iank.im.peek.wear.ui.theme.PeekWearSurfaceContainerHigh
-import kotlinx.coroutines.delay
+import java.util.concurrent.atomic.AtomicReference
 
 object WearInputLauncher {
     const val KEY_SUBMITTED_TEXT = "wear_submitted_text"
@@ -93,44 +93,55 @@ fun WearTextInputScreen(
     onSubmit: (String) -> Unit,
     onCancel: () -> Unit
 ) {
-    var textFieldValue by remember { mutableStateOf(TextFieldValue("")) }
+    var inputText by remember { mutableStateOf("") }
     var isHandled by remember { mutableStateOf(false) }
-    val focusRequester = remember { FocusRequester() }
+    val editTextRef = remember { AtomicReference<EditText?>(null) }
     val keyboardController = LocalSoftwareKeyboardController.current
-    val canSend = textFieldValue.text.isNotBlank() && !isHandled
+    val hintText = stringResource(R.string.chat_input_text_prompt)
+    val hintColorInt = PeekWearOnSurfaceVariant.toArgb()
+    val canSend = inputText.isNotBlank() && !isHandled
 
-    fun requestInputFocusAndKeyboard() {
-        runCatching {
-            focusRequester.requestFocus()
-            keyboardController?.show()
+    fun showKeyboard() {
+        val editText = editTextRef.get() ?: return
+        editText.requestFocus()
+        val imm = editText.context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        imm?.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    fun hideKeyboard() {
+        val editText = editTextRef.get()
+        if (editText != null) {
+            val imm = editText.context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.hideSoftInputFromWindow(editText.windowToken, 0)
+            editText.clearFocus()
         }
+        keyboardController?.hide()
     }
 
     fun submitCurrent() {
         if (isHandled) return
-        val trimmed = textFieldValue.text.trim()
+        val liveText = editTextRef.get()?.text?.toString() ?: inputText
+        val trimmed = liveText.trim()
         if (trimmed.isEmpty()) return
         isHandled = true
-        keyboardController?.hide()
+        hideKeyboard()
         onSubmit(trimmed)
     }
 
     fun cancelCurrent() {
         if (isHandled) return
         isHandled = true
-        keyboardController?.hide()
+        hideKeyboard()
         onCancel()
     }
 
+    val latestSubmit by rememberUpdatedState(::submitCurrent)
+
     DisposableEffect(Unit) {
         onDispose {
-            keyboardController?.hide()
+            hideKeyboard()
+            editTextRef.set(null)
         }
-    }
-
-    LaunchedEffect(Unit) {
-        delay(80L)
-        requestInputFocusAndKeyboard()
     }
 
     Column(
@@ -150,40 +161,56 @@ fun WearTextInputScreen(
                 .clip(RoundedCornerShape(16.dp))
                 .background(PeekWearSurfaceContainer)
                 .border(1.dp, PeekWearPrimary.copy(alpha = 0.7f), RoundedCornerShape(16.dp))
-                .clickable(onClick = ::requestInputFocusAndKeyboard)
+                .clickable(onClick = ::showKeyboard)
                 .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
-            BasicTextField(
-                value = textFieldValue,
-                onValueChange = { textFieldValue = it },
-                textStyle = MaterialTheme.typography.body2.copy(color = PeekWearOnBackground),
-                cursorBrush = SolidColor(PeekWearPrimary),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    imeAction = ImeAction.Send,
-                    capitalization = KeyboardCapitalization.Sentences
-                ),
-                keyboardActions = KeyboardActions(
-                    onSend = { submitCurrent() }
-                ),
-                decorationBox = { innerTextField ->
-                    Box(
-                        contentAlignment = Alignment.CenterStart,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        if (textFieldValue.text.isEmpty()) {
-                            Text(
-                                text = stringResource(R.string.chat_input_text_prompt),
-                                style = MaterialTheme.typography.body2,
-                                color = PeekWearOnSurfaceVariant
-                            )
+            AndroidView(
+                modifier = Modifier.fillMaxWidth(),
+                factory = { ctx ->
+                    EditText(ctx).apply {
+                        layoutParams = ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                        )
+                        background = null
+                        setPadding(0, 0, 0, 0)
+                        setTextColor(Color.WHITE)
+                        hint = hintText
+                        setHintTextColor(hintColorInt)
+                        setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                        inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+                        imeOptions = EditorInfo.IME_ACTION_SEND
+                        isSingleLine = true
+                        maxLines = 1
+                        isFocusable = true
+                        isFocusableInTouchMode = true
+                        doAfterTextChanged { editable ->
+                            inputText = editable?.toString().orEmpty()
                         }
-                        innerTextField()
+                        setOnEditorActionListener { _, actionId, event ->
+                            val isSendAction = actionId == EditorInfo.IME_ACTION_SEND ||
+                                actionId == EditorInfo.IME_ACTION_DONE ||
+                                (actionId == EditorInfo.IME_NULL && event?.action == KeyEvent.ACTION_DOWN)
+                            if (isSendAction) {
+                                latestSubmit()
+                                true
+                            } else {
+                                false
+                            }
+                        }
+                        editTextRef.set(this)
+                        post {
+                            requestFocus()
+                            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                            imm?.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+                        }
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester)
+                update = { editText ->
+                    if (editText.hint?.toString() != hintText) {
+                        editText.hint = hintText
+                    }
+                }
             )
         }
 
