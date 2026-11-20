@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.wear.compose.foundation.ExperimentalWearFoundationApi
 import androidx.wear.compose.foundation.lazy.AutoCenteringParams
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.items
@@ -63,6 +64,7 @@ import com.iank.im.peek.wear.ui.theme.PeekWearPrimary
 import com.iank.im.peek.wear.ui.theme.PeekWearSurfaceContainer
 import com.iank.im.peek.wear.ui.theme.PeekWearSurfaceContainerHigh
 
+@OptIn(ExperimentalWearFoundationApi::class)
 @Composable
 fun WearSettingsScreen(
     onOpenQualitySettings: () -> Unit,
@@ -299,6 +301,7 @@ fun WearSettingsScreen(
     }
 }
 
+@OptIn(ExperimentalWearFoundationApi::class)
 @Composable
 fun WearQualitySettingsScreen(
     onSelected: () -> Unit,
@@ -353,6 +356,7 @@ fun WearQualitySettingsScreen(
     }
 }
 
+@OptIn(ExperimentalWearFoundationApi::class)
 @Composable
 fun WearTargetSettingsScreen(
     onSelected: () -> Unit,
@@ -437,6 +441,7 @@ fun WearTargetSettingsScreen(
     }
 }
 
+@OptIn(ExperimentalWearFoundationApi::class)
 @Composable
 fun WearInputSettingsScreen(
     onSelected: () -> Unit,

@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.wear.compose.foundation.ExperimentalWearFoundationApi
 import androidx.wear.compose.foundation.rememberActiveFocusRequester
 import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.ButtonDefaults
@@ -57,6 +58,7 @@ import com.iank.im.peek.wear.ui.theme.PeekWearPrimary
 import com.iank.im.peek.wear.ui.theme.PeekWearSurfaceContainer
 import com.iank.im.peek.wear.ui.theme.PeekWearSurfaceContainerHigh
 
+@OptIn(ExperimentalWearFoundationApi::class)
 @Composable
 fun WearImageViewerScreen(
     onClose: () -> Unit,

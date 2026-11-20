@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.wear.compose.foundation.ExperimentalWearFoundationApi
 import androidx.wear.compose.foundation.lazy.AutoCenteringParams
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.itemsIndexed
@@ -56,6 +57,7 @@ import com.iank.im.peek.wear.ui.theme.PeekWearSurfaceContainer
 import com.iank.im.peek.wear.ui.theme.PeekWearSurfaceContainerHigh
 import kotlinx.coroutines.delay
 
+@OptIn(ExperimentalWearFoundationApi::class)
 @Composable
 fun WearReportScreen(
     onReportCompleted: () -> Unit,
